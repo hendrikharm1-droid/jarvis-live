@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -78,7 +79,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Mobile Top-Level Gateway</p>
+    <p>Mobile Top-Level Gateway v2.1</p>
   </div>
 
   <div class="orb-container">
@@ -88,7 +89,7 @@
   </div>
 
   <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
-  <div class="log-box" id="logBox">[JARVIS Bereit]</div>
+  <div class="log-box" id="logBox">[JARVIS Bereit v2.1]</div>
 
   <script>
     const _ENC_KEY = "QVEuQWI4Uk42S09IQ3hlc2UxZHNZT1RGWHZ4UGFQZjFxdGVudUw4cDUySlNzal9yRWVEaFE=";
@@ -96,8 +97,10 @@
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
 
     let isConnected = false;
+    let isHandshakeReady = false;
     let ws = null;
     let audioContext = null;
+    let inputContext = null;
     let mediaStream = null;
     let scriptProcessor = null;
     let nextPlayTime = 0;
@@ -133,7 +136,7 @@
         script.onerror = function() {
           delete window[callbackName];
           if (script.parentNode) script.parentNode.removeChild(script);
-          reject(new Error("Netzwerkfehler zum Apps Script Backend"));
+          reject(new Error("Netzwerkfehler Backend"));
         };
         document.body.appendChild(script);
       });
@@ -171,8 +174,8 @@
 
     async function startSession() {
       orb.classList.add("active");
-      statusText.innerText = "Initialisiere...";
-      log("Frage Mikrofon-Hardware an...");
+      statusText.innerText = "Initialisiere Hardware...";
+      isHandshakeReady = false;
 
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -183,27 +186,26 @@
         if (audioContext.state === 'suspended') {
           await audioContext.resume();
         }
-
         nextPlayTime = audioContext.currentTime;
+
         log("🎙️ Mikrofon freigegeben.");
         statusText.innerText = "Verbinde mit Gemini Live...";
 
         connectWebSocket();
       } catch (err) {
-        log("❌ Fehler: " + err.name + " - " + err.message);
-        statusText.innerText = "Fehler aufgetreten.";
+        log("❌ Hardware-Fehler: " + err.message);
         stopSession();
       }
     }
 
     function connectWebSocket() {
-      log("Öffne gesicherten Live-Kanal...");
+      log("Öffne Live-WebSocket...");
       const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        log("✅ WebSocket gesichert aktiv.");
-        statusText.innerText = "Synchronisiere Setup...";
+        log("✅ Kanal offen. Sende Setup...");
+        statusText.innerText = "Handshake mit Gemini...";
 
         const setupMessage = {
           setup: {
@@ -217,7 +219,7 @@
               }
             },
             systemInstruction: {
-              parts: [{ text: "Du bist JARVIS, der persönliche Assistent von Hendrik Harm. Antworte immer auf Deutsch, sympathisch, hochpräzise und direkt auf den Punkt." }]
+              parts: [{ text: "Du bist JARVIS, der persönliche Assistent von Hendrik Harm. Antworte kurz, prägnant auf Deutsch per Sprache." }]
             }
           }
         };
@@ -233,14 +235,17 @@
           }
           const res = JSON.parse(textData);
 
+          // 1. Erst nach Server-Bestätigung das Audio-Streaming starten!
           if (res.setupComplete) {
             log("🎯 Setup bestätigt – JARVIS hört zu!");
             statusText.innerText = "JARVIS hört zu...";
             isConnected = true;
+            isHandshakeReady = true;
             startAudioStreaming();
             return;
           }
 
+          // 2. Audio-Ausgabe empfangen
           if (res.serverContent?.modelTurn?.parts) {
             for (let p of res.serverContent.modelTurn.parts) {
               if (p.inlineData && p.inlineData.mimeType?.startsWith("audio/pcm")) {
@@ -249,11 +254,11 @@
             }
           }
         } catch (e) {
-          log("⚠️ Datenfehler: " + e.message);
+          log("⚠️ Parser-Fehler: " + e.message);
         }
       };
 
-      ws.onerror = (e) => log("❌ WebSocket Fehler");
+      ws.onerror = (e) => log("❌ WebSocket Verbindungsfehler");
       ws.onclose = (e) => {
         log(`Sitzung beendet (${e.code || "getrennt"}).`);
         stopSession();
@@ -261,12 +266,12 @@
     }
 
     function startAudioStreaming() {
-      const inputContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      inputContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
       const source = inputContext.createMediaStreamSource(mediaStream);
       scriptProcessor = inputContext.createScriptProcessor(4096, 1, 1);
 
       scriptProcessor.onaudioprocess = (e) => {
-        if (!isConnected || !ws || ws.readyState !== WebSocket.OPEN) return;
+        if (!isConnected || !isHandshakeReady || !ws || ws.readyState !== WebSocket.OPEN) return;
         const input = e.inputBuffer.getChannelData(0);
         const pcm16 = new Int16Array(input.length);
         for (let i = 0; i < input.length; i++) {
@@ -313,9 +318,11 @@
 
     function stopSession() {
       isConnected = false;
+      isHandshakeReady = false;
       if (ws) { try { ws.close(); } catch(e){} ws = null; }
       if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
       if (scriptProcessor) { try { scriptProcessor.disconnect(); } catch(e){} scriptProcessor = null; }
+      if (inputContext && inputContext.state !== 'closed') { try { inputContext.close(); } catch(e){} inputContext = null; }
       if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} audioContext = null; }
       orb.classList.remove("active");
       statusText.innerText = "Tippe auf den Orb, um zu sprechen";
