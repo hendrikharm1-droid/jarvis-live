@@ -40,7 +40,7 @@
 
     .status-box { text-align: center; font-size: 15px; color: #94a3b8; min-height: 24px; }
     .log-box {
-      width: 100%; height: 160px; background: rgba(15, 23, 42, 0.9);
+      width: 100%; height: 150px; background: rgba(15, 23, 42, 0.85);
       backdrop-filter: blur(10px); border: 1px solid #1e293b; border-radius: 12px;
       padding: 12px; font-family: monospace; font-size: 11px; color: #94a3b8; overflow-y: auto;
     }
@@ -70,7 +70,7 @@
   <div class="auth-overlay" id="authOverlay" style="display: none;">
     <div class="auth-box">
       <h3>🔐 JARVIS Security Gate</h3>
-      <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Sicherheitsschlüssel eingeben:</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Sicherheitsschlüssel (Token) eingeben:</p>
       <input type="password" id="tokenInput" placeholder="Passwort / PIN">
       <button onclick="saveAuthToken()">Entsperren</button>
     </div>
@@ -78,7 +78,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Model Inspector & Live Gateway</p>
+    <p>Mobile Top-Level Gateway</p>
   </div>
 
   <div class="orb-container">
@@ -87,14 +87,13 @@
     </div>
   </div>
 
-  <div class="status-box" id="statusText">Tippe auf den Orb, um zu starten</div>
-  <div class="log-box" id="logBox">[JARVIS Model-Inspector Bereit]</div>
+  <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
+  <div class="log-box" id="logBox">[JARVIS Online]</div>
 
   <script>
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
 
     let dynamicApiKey = null;
-    let verifiedModelName = "models/gemini-2.0-flash-exp";
     let isConnected = false;
     let isHandshakeReady = false;
     let ws = null;
@@ -171,39 +170,6 @@
       }
     }
 
-    // Fragt direkt die Google AI API nach allen aktiven Modellen für deinen Key ab
-    async function inspectAndVerifyAvailableModels(apiKey) {
-      log("🔍 Frage verfügbare Modelle bei Google AI ab...");
-      try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          log(`⚠️ Model-Check HTTP ${res.status}: ${errData.error?.message || "Fehlgeschlagen"}`);
-          return;
-        }
-        const data = await res.json();
-        const models = data.models || [];
-        
-        const flashModels = models
-          .map(m => m.name)
-          .filter(name => name.includes("flash") || name.includes("gemini-2"));
-
-        log(`📋 Gefundene Modelle (${models.length} gesamt):`);
-        flashModels.slice(0, 5).forEach(m => log(`&nbsp;&nbsp;→ ${m}`));
-
-        if (models.some(m => m.name === "models/gemini-2.0-flash-exp")) {
-          verifiedModelName = "models/gemini-2.0-flash-exp";
-        } else if (models.some(m => m.name === "models/gemini-2.0-flash")) {
-          verifiedModelName = "models/gemini-2.0-flash";
-        } else if (flashModels.length > 0) {
-          verifiedModelName = flashModels[0];
-        }
-        log(`🎯 Gewähltes Live-Modell: <b>${verifiedModelName}</b>`);
-      } catch (e) {
-        log("⚠️ Model-Inspection Fehler: " + e.message);
-      }
-    }
-
     async function startSession() {
       orb.classList.add("active");
       statusText.innerText = "Initialisiere Hardware...";
@@ -219,11 +185,12 @@
           await audioContext.resume();
         }
         nextPlayTime = audioContext.currentTime;
+
         log("🎙️ Mikrofon aktiv.");
 
         if (!dynamicApiKey) {
-          statusText.innerText = "Lade Backend-Konfiguration...";
-          log("Hole API-Key von Apps Script...");
+          statusText.innerText = "Lade Konfiguration...";
+          log("Hole API-Key vom Apps Script Backend...");
           const res = await callAppsScriptJSONP("get_config");
 
           if (!res || !res.apiKey) {
@@ -232,13 +199,10 @@
             return;
           }
           dynamicApiKey = res.apiKey.trim();
-          log("🔑 Key geladen: " + dynamicApiKey.substring(0, 8) + "...");
-          
-          // Live-Prüfung der Modell-Endpunkte durchführen
-          await inspectAndVerifyAvailableModels(dynamicApiKey);
+          log("🔑 Key erfolgreich geladen.");
         }
 
-        statusText.innerText = "Verbinde mit Live-Kanal...";
+        statusText.innerText = "Verbinde mit Gemini Live...";
         connectWebSocket();
       } catch (err) {
         log("❌ Fehler: " + err.message);
@@ -247,22 +211,22 @@
     }
 
     function connectWebSocket() {
-      log(`Öffne WebSocket (${verifiedModelName})...`);
+      log("Öffne Live-WebSocket...");
       const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${dynamicApiKey}`;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        log("✅ WebSocket offen. Sende Setup...");
+        log("✅ WebSocket offen. Sende Setup-Frame...");
         statusText.innerText = "Synchronisiere Setup...";
 
         const setupMessage = {
           setup: {
-            model: verifiedModelName,
+            model: "models/gemini-2.0-flash-exp",
             generationConfig: {
               responseModalities: ["AUDIO"]
             },
             systemInstruction: {
-              parts: [{ text: "Du bist JARVIS, der persönliche Assistent von Hendrik Harm. Antworte immer auf Deutsch, präzise und direkt." }]
+              parts: [{ text: "Du bist JARVIS, der persönliche Sprachassistent von Hendrik Harm. Antworte immer direkt, sympathisch und präzise auf Deutsch per Sprache." }]
             }
           }
         };
