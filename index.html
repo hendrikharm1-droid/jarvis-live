@@ -78,7 +78,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Mobile Top-Level Gateway</p>
+    <p>Mobile Gateway & Multi-Model Live Hub</p>
   </div>
 
   <div class="orb-container">
@@ -93,9 +93,7 @@
   <script>
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
 
-    // Das Standardmodell für die multimodale Live-API
-    const TARGET_MODEL = "models/gemini-2.0-flash-exp";
-
+    let selectedModel = "models/gemini-2.0-flash-exp";
     let dynamicApiKey = null;
     let isConnected = false;
     let isHandshakeReady = false;
@@ -192,9 +190,7 @@
 
         if (!dynamicApiKey) {
           statusText.innerText = "Lade Konfiguration...";
-          log("Hole API-Key vom Apps Script Backend...");
           const res = await callAppsScriptJSONP("get_config");
-
           if (!res || !res.apiKey) {
             log("🚨 Konfigurationsfehler: " + (res?.error || "Kein API-Key"));
             stopSession();
@@ -204,7 +200,7 @@
           log("🔑 Key geladen.");
         }
 
-        statusText.innerText = "Verbinde mit Gemini Live...";
+        statusText.innerText = "Verbinde mit Live-Gateway...";
         connectWebSocket();
       } catch (err) {
         log("❌ Fehler: " + err.message);
@@ -213,7 +209,10 @@
     }
 
     function connectWebSocket() {
-      log(`Öffne Live-WebSocket...`);
+      // Fix: Strippe 'models/' Präfix für WebSocket Setup
+      const modelIdentifier = selectedModel.replace('models/', '');
+      log(`Öffne Live-WebSocket (${modelIdentifier})...`);
+      
       const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${dynamicApiKey}`;
       ws = new WebSocket(wsUrl);
 
@@ -223,7 +222,7 @@
 
         const setupMessage = {
           setup: {
-            model: TARGET_MODEL,
+            model: modelIdentifier, // HIER OHNE 'models/' Präfix
             generationConfig: {
               responseModalities: ["AUDIO"]
             },
