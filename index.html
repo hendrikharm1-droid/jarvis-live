@@ -78,7 +78,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Mobile Gateway & Multi-Model Live Hub</p>
+    <p>Mobile Top-Level Gateway</p>
   </div>
 
   <div class="orb-container">
@@ -93,8 +93,10 @@
   <script>
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
 
+    // Das Standardmodell für die multimodale Live-API
+    const TARGET_MODEL = "models/gemini-2.0-flash-exp";
+
     let dynamicApiKey = null;
-    let selectedModel = "gemini-2.0-flash-exp";
     let isConnected = false;
     let isHandshakeReady = false;
     let ws = null;
@@ -171,33 +173,6 @@
       }
     }
 
-    async function discoverLiveModel(apiKey) {
-      log("🔍 Ermittle unterstützte Gemini-Live Endpoints...");
-      try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        if (res.ok) {
-          const data = await res.json();
-          const list = (data.models || []).map(m => m.name.replace(/^models\//, ''));
-          
-          log(`Verfügbare Key-Modelle: ${list.filter(m => m.includes('gemini-2') || m.includes('flash')).slice(0, 4).join(', ')}`);
-
-          // Bevorzuge Live-kompatible Modelle
-          if (list.includes("gemini-2.0-flash-exp")) {
-            selectedModel = "models/gemini-2.0-flash-exp";
-          } else if (list.includes("gemini-2.0-flash")) {
-            selectedModel = "models/gemini-2.0-flash";
-          } else if (list.includes("gemini-2.0-flash-realtime-exp")) {
-            selectedModel = "models/gemini-2.0-flash-realtime-exp";
-          } else {
-            selectedModel = "models/gemini-2.0-flash-exp";
-          }
-        }
-      } catch (e) {
-        log("⚠️ Auto-Discovery übersprungen, nutze Default: " + selectedModel);
-      }
-      log(`🎯 Ziel-Modell: <b>${selectedModel}</b>`);
-    }
-
     async function startSession() {
       orb.classList.add("active");
       statusText.innerText = "Initialisiere Audio...";
@@ -213,7 +188,6 @@
           await audioContext.resume();
         }
         nextPlayTime = audioContext.currentTime;
-
         log("🎙️ Mikrofon aktiv.");
 
         if (!dynamicApiKey) {
@@ -228,10 +202,9 @@
           }
           dynamicApiKey = res.apiKey.trim();
           log("🔑 Key geladen.");
-          await discoverLiveModel(dynamicApiKey);
         }
 
-        statusText.innerText = "Verbinde mit Live-Gateway...";
+        statusText.innerText = "Verbinde mit Gemini Live...";
         connectWebSocket();
       } catch (err) {
         log("❌ Fehler: " + err.message);
@@ -241,27 +214,21 @@
 
     function connectWebSocket() {
       log(`Öffne Live-WebSocket...`);
-      // v1alpha BidiGenerateContent WebSocket Endpoint
       const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${dynamicApiKey}`;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        log(`✅ WebSocket offen. Sende Setup (${selectedModel})...`);
+        log("✅ WebSocket offen. Sende Setup-Frame...");
         statusText.innerText = "Synchronisiere Setup...";
 
         const setupMessage = {
           setup: {
-            model: selectedModel,
+            model: TARGET_MODEL,
             generationConfig: {
-              responseModalities: ["AUDIO"],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: "Puck" }
-                }
-              }
+              responseModalities: ["AUDIO"]
             },
             systemInstruction: {
-              parts: [{ text: "Du bist JARVIS, der persönliche Sprachassistent von Hendrik Harm. Antworte auf Deutsch präzise, direkt und per Audio." }]
+              parts: [{ text: "Du bist JARVIS, der persönliche Sprachassistent von Hendrik Harm. Antworte immer auf Deutsch, präzise und direkt." }]
             }
           }
         };
