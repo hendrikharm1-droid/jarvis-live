@@ -91,7 +91,11 @@
   <div class="log-box" id="logBox">[JARVIS Bereit]</div>
 
   <script>
-    const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyS3rW6ffr5STE7ih5NB3F1bpzmgbwgMAI4vlXFk0KR910EfV-F7OoNXP23H4XFMJXu9w/exec";
+    // =========================================================================
+    // AKTUALISIERTE APPS SCRIPT WEB-APP URL:
+    // =========================================================================
+    const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
+    // =========================================================================
 
     let isConnected = false;
     let ws = null;
@@ -157,7 +161,7 @@
         log("🎙️ Mikrofon freigegeben.");
         statusText.innerText = "Autorisiere Sitzung...";
 
-        // Sichere GET-Abfrage (verhindert CORS Failed to fetch)
+        // Sichere GET-Abfrage (verhindert CORS-Blockaden)
         if (!dynamicApiKey) {
           log("Hole Session-Token vom Backend...");
           const url = `${APPS_SCRIPT_WEBAPP_URL}?action=get_config&authToken=${encodeURIComponent(authToken)}`;
@@ -245,7 +249,7 @@
         }
       };
 
-      ws.onerror = (e) => log("❌ WebSocket Fehler");
+      ws.onerror = (e) => log("❌ WebSocket Verbindungsfehler");
       ws.onclose = () => stopSession();
     }
 
