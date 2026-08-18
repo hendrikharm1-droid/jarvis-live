@@ -78,7 +78,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Mobile Top-Level Gateway v2.2</p>
+    <p>Mobile Top-Level Gateway v2.3</p>
   </div>
 
   <div class="orb-container">
@@ -88,13 +88,12 @@
   </div>
 
   <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
-  <div class="log-box" id="logBox">[JARVIS Diagnostik Bereit]</div>
+  <div class="log-box" id="logBox">[JARVIS Bereit v2.3]</div>
 
   <script>
-    const _ENC_KEY = "QVEuQWI4Uk42S09IQ3hlc2UxZHNZT1RGWHZ4UGFQZjFxdGVudUw4cDUySlNzal9yRWVEaFE=";
-    const GEMINI_API_KEY = atob(_ENC_KEY);
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
 
+    let dynamicApiKey = null;
     let isConnected = false;
     let isHandshakeReady = false;
     let ws = null;
@@ -114,6 +113,7 @@
       b.scrollTop = b.scrollHeight;
     }
 
+    // CORS-sichere JSONP Bridge
     function callAppsScriptJSONP(action, params = {}) {
       return new Promise((resolve, reject) => {
         const callbackName = "jarvis_cb_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
@@ -173,7 +173,7 @@
 
     async function startSession() {
       orb.classList.add("active");
-      statusText.innerText = "Initialisiere Hardware...";
+      statusText.innerText = "Initialisiere...";
       isHandshakeReady = false;
 
       try {
@@ -188,30 +188,46 @@
         nextPlayTime = audioContext.currentTime;
 
         log("🎙️ Mikrofon freigegeben.");
-        statusText.innerText = "Verbinde mit Gemini Live...";
 
+        if (!dynamicApiKey) {
+          statusText.innerText = "Hole Konfiguration...";
+          log("Lade API-Key vom Apps Script Backend...");
+          const res = await callAppsScriptJSONP("get_config");
+
+          if (!res || !res.apiKey) {
+            log("🚨 Konfigurationsfehler: " + (res?.error || "Kein API-Key im Backend"));
+            stopSession();
+            return;
+          }
+          dynamicApiKey = res.apiKey.trim();
+          log("🔑 Backend-Key empfangen.");
+        }
+
+        statusText.innerText = "Verbinde mit Gemini Live...";
         connectWebSocket();
       } catch (err) {
-        log("❌ Hardware-Fehler: " + err.message);
+        log("❌ Hardware/Init-Fehler: " + err.message);
         stopSession();
       }
     }
 
     function connectWebSocket() {
-      log("Öffne WebSocket...");
-      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
+      log("Öffne Live-WebSocket...");
+      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${dynamicApiKey}`;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         log("✅ WebSocket offen. Sende Setup-Frame...");
         statusText.innerText = "Handshake mit Gemini...";
 
-        // Minimales, voll kompatibles Setup für Live API v1alpha
         const setupMessage = {
           setup: {
             model: "models/gemini-2.0-flash-exp",
             generationConfig: {
               responseModalities: ["AUDIO"]
+            },
+            systemInstruction: {
+              parts: [{ text: "Du bist JARVIS, der persönliche Sprachassistent von Hendrik Harm. Antworte immer auf Deutsch, präzise und direkt." }]
             }
           }
         };
@@ -227,9 +243,8 @@
           }
           const res = JSON.parse(textData);
 
-          // Fehlerdiagnose von Google abfangen
           if (res.error) {
-            log(`🚨 API-Fehler: ${res.error.message || JSON.stringify(res.error)}`);
+            log(`🚨 Google-Fehler: ${res.error.message || JSON.stringify(res.error)}`);
             return;
           }
 
@@ -254,9 +269,9 @@
         }
       };
 
-      ws.onerror = (e) => log("❌ WebSocket Fehler");
+      ws.onerror = (e) => log("❌ WebSocket Verbindungsfehler");
       ws.onclose = (e) => {
-        log(`Sitzung beendet (${e.code}: ${e.reason || "Policy Violation / Key ungültig"}).`);
+        log(`Sitzung beendet (${e.code}: ${e.reason || "getrennt"}).`);
         stopSession();
       };
     }
