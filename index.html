@@ -91,11 +91,7 @@
   <div class="log-box" id="logBox">[JARVIS Bereit]</div>
 
   <script>
-    // =========================================================================
-    // APPS SCRIPT ENDPOINT (Kein API-Key im Quellcode nötig)
-    // =========================================================================
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyS3rW6ffr5STE7ih5NB3F1bpzmgbwgMAI4vlXFk0KR910EfV-F7OoNXP23H4XFMJXu9w/exec";
-    // =========================================================================
 
     let isConnected = false;
     let ws = null;
@@ -161,16 +157,14 @@
         log("🎙️ Mikrofon freigegeben.");
         statusText.innerText = "Autorisiere Sitzung...";
 
-        // API Key dynamisch und sicher vom Backend abrufen
+        // Sichere GET-Abfrage (verhindert CORS Failed to fetch)
         if (!dynamicApiKey) {
           log("Hole Session-Token vom Backend...");
-          const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
-            method: "POST",
-            body: JSON.stringify({ authToken: authToken, action: "get_config" })
-          }).then(r => r.json());
+          const url = `${APPS_SCRIPT_WEBAPP_URL}?action=get_config&authToken=${encodeURIComponent(authToken)}`;
+          const res = await fetch(url).then(r => r.json());
 
-          if (res.error) {
-            log("🚨 Token ungültig!");
+          if (!res || res.error || !res.apiKey) {
+            log("🚨 Token ungültig oder Fehler: " + (res?.error || "403"));
             localStorage.removeItem("JARVIS_AUTH_TOKEN");
             authToken = null;
             document.getElementById("authOverlay").style.display = "flex";
@@ -237,14 +231,8 @@
               log(`⚡ Tool Call: <b>${call.name}</b>`);
               
               try {
-                const apiRes = await fetch(APPS_SCRIPT_WEBAPP_URL, {
-                  method: "POST",
-                  body: JSON.stringify({ 
-                    authToken: authToken, 
-                    action: call.name, 
-                    params: call.args || {} 
-                  })
-                }).then(r => r.json());
+                const callUrl = `${APPS_SCRIPT_WEBAPP_URL}?action=${encodeURIComponent(call.name)}&authToken=${encodeURIComponent(authToken)}&params=${encodeURIComponent(JSON.stringify(call.args || {}))}`;
+                const apiRes = await fetch(callUrl).then(r => r.json());
 
                 ws.send(JSON.stringify({
                   toolResponse: { functionResponses: [{ response: { output: apiRes }, id: call.id }] }
