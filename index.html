@@ -91,7 +91,7 @@
   <div class="log-box" id="logBox">[JARVIS Bereit]</div>
 
   <script>
-    // Konfiguration
+    // Direkte Base64-Integration des Keys (Kein get_config Call nötig)
     const _ENC_KEY = "QVEuQWI4Uk42S09IQ3hlc2UxZHNZT1RGWHZ4UGFQZjFxdGVudUw4cDUySlNzal9yRWVEaFE=";
     const GEMINI_API_KEY = atob(_ENC_KEY);
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
@@ -111,7 +111,7 @@
       b.scrollTop = b.scrollHeight;
     }
 
-    // CORS-sichere JSONP Bridge
+    // CORS-sichere JSONP Bridge für Tool Calls
     function callAppsScriptJSONP(action, params = {}) {
       return new Promise((resolve, reject) => {
         const callbackName = "jarvis_cb_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
@@ -187,6 +187,7 @@
         log("🎙️ Mikrofon freigegeben.");
         statusText.innerText = "Verbinde mit Gemini Live...";
 
+        // Direkter Start ohne Umweg
         connectWebSocket();
       } catch (err) {
         log("❌ Fehler: " + err.name + " - " + err.message);
@@ -256,7 +257,7 @@
         }
       };
 
-      ws.onerror = (e) => log("❌ WebSocket Fehler");
+      ws.onerror = (e) => log("❌ WebSocket Verbindungsfehler");
       ws.onclose = () => stopSession();
     }
 
