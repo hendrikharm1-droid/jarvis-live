@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#090d16">
+  <title>JARVIS Live OS</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at 50% 30%, #172554 0%, #090d16 100%);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 40px 20px;
+      overflow: hidden;
+    }
+    .header { text-align: center; }
+    .header h1 { font-size: 22px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; }
+    .header p { font-size: 13px; color: #64748b; margin-top: 4px; }
+    
+    .orb-container { position: relative; display: flex; align-items: center; justify-content: center; }
+    .orb {
+      width: 160px; height: 160px; border-radius: 50%;
+      background: radial-gradient(circle, #38bdf8 10%, #2563eb 60%, #1e1b4b 100%);
+      box-shadow: 0 0 50px rgba(56, 189, 248, 0.4);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.3s ease; -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .orb svg { width: 50px; height: 50px; fill: white; pointer-events: none; }
+    .orb.active { animation: pulse 1.4s infinite alternate ease-in-out; box-shadow: 0 0 90px rgba(56, 189, 248, 0.95); }
+    @keyframes pulse { 0% { transform: scale(0.95); } 100% { transform: scale(1.18); filter: brightness(1.2); } }
+
+    .status-box { text-align: center; font-size: 15px; color: #94a3b8; min-height: 24px; }
+    .log-box {
+      width: 100%; height: 130px; background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(10px); border: 1px solid #1e293b; border-radius: 12px;
+      padding: 12px; font-family: monospace; font-size: 11px; color: #94a3b8; overflow-y: auto;
+    }
+
+    .auth-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(9, 13, 22, 0.95); backdrop-filter: blur(15px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 100; padding: 20px;
+    }
+    .auth-box {
+      background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+      padding: 25px; width: 100%; max-width: 340px; text-align: center;
+    }
+    .auth-box input {
+      width: 100%; padding: 12px; margin: 15px 0; border-radius: 8px;
+      border: 1px solid #475569; background: #0f172a; color: white; font-size: 16px; text-align: center;
+    }
+    .auth-box button {
+      width: 100%; padding: 12px; border-radius: 8px; border: none;
+      background: #38bdf8; color: #0f172a; font-weight: bold; font-size: 16px; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="auth-overlay" id="authOverlay" style="display: none;">
+    <div class="auth-box">
+      <h3>🔐 JARVIS Security Gate</h3>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Sicherheitsschlüssel eingeben:</p>
+      <input type="password" id="tokenInput" placeholder="Passwort / PIN">
+      <button onclick="saveAuthToken()">Entsperren</button>
+    </div>
+  </div>
+
+  <div class="header">
+    <h1>JARVIS Live OS</h1>
+    <p>Mobile Top-Level Gateway</p>
+  </div>
+
+  <div class="orb-container">
+    <div class="orb" id="voiceOrb">
+      <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+    </div>
+  </div>
+
+  <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
+  <div class="log-box" id="logBox">[JARVIS Bereit]</div>
+
+  <script>
+    // =========================================================================
+    // APPS SCRIPT ENDPOINT (Kein API-Key im Quellcode nötig)
+    // =========================================================================
+    const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyS3rW6ffr5STE7ih5NB3F1bpzmgbwgMAI4vlXFk0KR910EfV-F7OoNXP23H4XFMJXu9w/exec";
+    // =========================================================================
+
+    let isConnected = false;
+    let ws = null;
+    let audioContext = null;
+    let mediaStream = null;
+    let authToken = localStorage.getItem("JARVIS_AUTH_TOKEN");
+    let dynamicApiKey = null;
+
+    const orb = document.getElementById("voiceOrb");
+    const statusText = document.getElementById("statusText");
+
+    function log(msg) {
+      const b = document.getElementById("logBox");
+      b.innerHTML += `<br>• ${msg}`;
+      b.scrollTop = b.scrollHeight;
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      if (!authToken) {
+        document.getElementById("authOverlay").style.display = "flex";
+      }
+    });
+
+    function saveAuthToken() {
+      const val = document.getElementById("tokenInput").value.trim();
+      if (val) {
+        localStorage.setItem("JARVIS_AUTH_TOKEN", val);
+        authToken = val;
+        document.getElementById("authOverlay").style.display = "none";
+        log("✅ Schlüssel gespeichert.");
+      }
+    }
+
+    orb.addEventListener("click", handleOrbClick);
+
+    async function handleOrbClick() {
+      if (!authToken) {
+        document.getElementById("authOverlay").style.display = "flex";
+        return;
+      }
+      if (isConnected) {
+        stopSession();
+      } else {
+        await startSession();
+      }
+    }
+
+    async function startSession() {
+      orb.classList.add("active");
+      statusText.innerText = "Initialisiere...";
+      log("Frage Mikrofon-Hardware an...");
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+        });
+
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        log("🎙️ Mikrofon freigegeben.");
+        statusText.innerText = "Autorisiere Sitzung...";
+
+        // API Key dynamisch und sicher vom Backend abrufen
+        if (!dynamicApiKey) {
+          log("Hole Session-Token vom Backend...");
+          const res = await fetch(APPS_SCRIPT_WEBAPP_URL, {
+            method: "POST",
+            body: JSON.stringify({ authToken: authToken, action: "get_config" })
+          }).then(r => r.json());
+
+          if (res.error) {
+            log("🚨 Token ungültig!");
+            localStorage.removeItem("JARVIS_AUTH_TOKEN");
+            authToken = null;
+            document.getElementById("authOverlay").style.display = "flex";
+            stopSession();
+            return;
+          }
+          dynamicApiKey = res.apiKey;
+        }
+
+        connectWebSocket();
+      } catch (err) {
+        log("❌ Fehler: " + err.name + " - " + err.message);
+        statusText.innerText = "Fehler aufgetreten.";
+        stopSession();
+      }
+    }
+
+    function connectWebSocket() {
+      log("Verbinde mit Gemini Live...");
+      const tools = [{
+        functionDeclarations: [
+          {
+            name: "search_documents",
+            description: "Durchsucht Drive Index & Vektoren nach Dokumenten/Rechnungen.",
+            parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] }
+          },
+          {
+            name: "get_upcoming_deadlines",
+            description: "Holt Zahlungsziele und Fristen aus dem Google Kalender.",
+            parameters: { type: "OBJECT", properties: { days: { type: "NUMBER" } } }
+          },
+          {
+            name: "get_tax_summary",
+            description: "Liest Steuerwerte (§35a Handwerkerlohn) aus.",
+            parameters: { type: "OBJECT", properties: { category: { type: "STRING" } } }
+          }
+        ]
+      }];
+
+      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${dynamicApiKey}`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        log("✅ WebSocket gesichert aktiv.");
+        statusText.innerText = "JARVIS hört zu...";
+        ws.send(JSON.stringify({
+          setup: {
+            model: "models/gemini-2.0-flash-exp",
+            generationConfig: { responseModalities: ["AUDIO"] },
+            tools: tools,
+            systemInstruction: { parts: [{ text: "Du bist JARVIS, der persönliche Assistent von Hendrik Harm. Antworte kurz, prägnant auf Deutsch. Nutze deine Tools proaktiv." }] }
+          }
+        }));
+        isConnected = true;
+        startAudioStreaming();
+      };
+
+      ws.onmessage = async (event) => {
+        const res = JSON.parse(event.data);
+        if (res.serverContent?.modelTurn?.parts) {
+          for (let p of res.serverContent.modelTurn.parts) {
+            if (p.functionCall) {
+              const call = p.functionCall;
+              log(`⚡ Tool Call: <b>${call.name}</b>`);
+              
+              try {
+                const apiRes = await fetch(APPS_SCRIPT_WEBAPP_URL, {
+                  method: "POST",
+                  body: JSON.stringify({ 
+                    authToken: authToken, 
+                    action: call.name, 
+                    params: call.args || {} 
+                  })
+                }).then(r => r.json());
+
+                ws.send(JSON.stringify({
+                  toolResponse: { functionResponses: [{ response: { output: apiRes }, id: call.id }] }
+                }));
+              } catch(e) {
+                log("⚠️ Tool-Fehler: " + e.message);
+              }
+            }
+          }
+        }
+      };
+
+      ws.onerror = (e) => log("❌ WebSocket Fehler");
+      ws.onclose = () => stopSession();
+    }
+
+    function startAudioStreaming() {
+      const source = audioContext.createMediaStreamSource(mediaStream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+      processor.onaudioprocess = (e) => {
+        if (!isConnected || ws.readyState !== WebSocket.OPEN) return;
+        const input = e.inputBuffer.getChannelData(0);
+        const pcm16 = new Int16Array(input.length);
+        for (let i = 0; i < input.length; i++) {
+          pcm16[i] = Math.max(-1, Math.min(1, input[i])) * 0x7FFF;
+        }
+        const base64Audio = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
+        ws.send(JSON.stringify({
+          realtimeInput: { mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: base64Audio }] }
+        }));
+      };
+
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+      log("🎙️ Live Stream aktiv.");
+    }
+
+    function stopSession() {
+      isConnected = false;
+      if (ws) { try { ws.close(); } catch(e){} }
+      if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); }
+      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} }
+      orb.classList.remove("active");
+      statusText.innerText = "Tippe auf den Orb, um zu sprechen";
+      log("Sitzung beendet.");
+    }
+  </script>
+</body>
+</html>
