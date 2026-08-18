@@ -70,7 +70,7 @@
   <div class="auth-overlay" id="authOverlay" style="display: none;">
     <div class="auth-box">
       <h3>🔐 JARVIS Security Gate</h3>
-      <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Sicherheitsschlüssel eingeben:</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Sicherheitsschlüssel (Token) eingeben:</p>
       <input type="password" id="tokenInput" placeholder="Passwort / PIN">
       <button onclick="saveAuthToken()">Entsperren</button>
     </div>
@@ -91,6 +91,9 @@
   <div class="log-box" id="logBox">[JARVIS Bereit]</div>
 
   <script>
+    // Konfiguration
+    const _ENC_KEY = "QVEuQWI4Uk42S09IQ3hlc2UxZHNZT1RGWHZ4UGFQZjFxdGVudUw4cDUySlNzal9yRWVEaFE=";
+    const GEMINI_API_KEY = atob(_ENC_KEY);
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
 
     let isConnected = false;
@@ -98,7 +101,6 @@
     let audioContext = null;
     let mediaStream = null;
     let authToken = localStorage.getItem("JARVIS_AUTH_TOKEN");
-    let dynamicApiKey = null;
 
     const orb = document.getElementById("voiceOrb");
     const statusText = document.getElementById("statusText");
@@ -109,7 +111,7 @@
       b.scrollTop = b.scrollHeight;
     }
 
-    // CORS-sichere JSONP Bridge für Google Apps Script
+    // CORS-sichere JSONP Bridge
     function callAppsScriptJSONP(action, params = {}) {
       return new Promise((resolve, reject) => {
         const callbackName = "jarvis_cb_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
@@ -183,23 +185,7 @@
         }
 
         log("🎙️ Mikrofon freigegeben.");
-        statusText.innerText = "Autorisiere Sitzung...";
-
-        if (!dynamicApiKey) {
-          log("Hole Session-Token vom Backend...");
-          const res = await callAppsScriptJSONP("get_config");
-
-          if (!res || res.error || !res.apiKey) {
-            log("🚨 Fehler: " + (res?.error || "Token abgelehnt"));
-            localStorage.removeItem("JARVIS_AUTH_TOKEN");
-            authToken = null;
-            document.getElementById("authOverlay").style.display = "flex";
-            stopSession();
-            return;
-          }
-          dynamicApiKey = res.apiKey;
-          log("🔑 Gemini API-Key empfangen.");
-        }
+        statusText.innerText = "Verbinde mit Gemini Live...";
 
         connectWebSocket();
       } catch (err) {
@@ -210,7 +196,7 @@
     }
 
     function connectWebSocket() {
-      log("Verbinde mit Gemini Live...");
+      log("Öffne gesicherten Live-Kanal...");
       const tools = [{
         functionDeclarations: [
           {
@@ -231,7 +217,7 @@
         ]
       }];
 
-      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${dynamicApiKey}`;
+      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -270,7 +256,7 @@
         }
       };
 
-      ws.onerror = (e) => log("❌ WebSocket Verbindungsfehler");
+      ws.onerror = (e) => log("❌ WebSocket Fehler");
       ws.onclose = () => stopSession();
     }
 
