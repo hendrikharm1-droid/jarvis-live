@@ -40,7 +40,7 @@
 
     .status-box { text-align: center; font-size: 15px; color: #94a3b8; min-height: 24px; }
     .log-box {
-      width: 100%; height: 140px; background: rgba(15, 23, 42, 0.85);
+      width: 100%; height: 160px; background: rgba(15, 23, 42, 0.9);
       backdrop-filter: blur(10px); border: 1px solid #1e293b; border-radius: 12px;
       padding: 12px; font-family: monospace; font-size: 11px; color: #94a3b8; overflow-y: auto;
     }
@@ -70,7 +70,7 @@
   <div class="auth-overlay" id="authOverlay" style="display: none;">
     <div class="auth-box">
       <h3>🔐 JARVIS Security Gate</h3>
-      <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Sicherheitsschlüssel (Token) eingeben:</p>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Sicherheitsschlüssel eingeben:</p>
       <input type="password" id="tokenInput" placeholder="Passwort / PIN">
       <button onclick="saveAuthToken()">Entsperren</button>
     </div>
@@ -78,7 +78,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Mobile Top-Level Gateway v2.3</p>
+    <p>Model Inspector & Live Gateway</p>
   </div>
 
   <div class="orb-container">
@@ -87,13 +87,14 @@
     </div>
   </div>
 
-  <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
-  <div class="log-box" id="logBox">[JARVIS Bereit v2.3]</div>
+  <div class="status-box" id="statusText">Tippe auf den Orb, um zu starten</div>
+  <div class="log-box" id="logBox">[JARVIS Model-Inspector Bereit]</div>
 
   <script>
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
 
     let dynamicApiKey = null;
+    let verifiedModelName = "models/gemini-2.0-flash-exp";
     let isConnected = false;
     let isHandshakeReady = false;
     let ws = null;
@@ -113,7 +114,6 @@
       b.scrollTop = b.scrollHeight;
     }
 
-    // CORS-sichere JSONP Bridge
     function callAppsScriptJSONP(action, params = {}) {
       return new Promise((resolve, reject) => {
         const callbackName = "jarvis_cb_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
@@ -171,9 +171,42 @@
       }
     }
 
+    // Fragt direkt die Google AI API nach allen aktiven Modellen für deinen Key ab
+    async function inspectAndVerifyAvailableModels(apiKey) {
+      log("🔍 Frage verfügbare Modelle bei Google AI ab...");
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          log(`⚠️ Model-Check HTTP ${res.status}: ${errData.error?.message || "Fehlgeschlagen"}`);
+          return;
+        }
+        const data = await res.json();
+        const models = data.models || [];
+        
+        const flashModels = models
+          .map(m => m.name)
+          .filter(name => name.includes("flash") || name.includes("gemini-2"));
+
+        log(`📋 Gefundene Modelle (${models.length} gesamt):`);
+        flashModels.slice(0, 5).forEach(m => log(`&nbsp;&nbsp;→ ${m}`));
+
+        if (models.some(m => m.name === "models/gemini-2.0-flash-exp")) {
+          verifiedModelName = "models/gemini-2.0-flash-exp";
+        } else if (models.some(m => m.name === "models/gemini-2.0-flash")) {
+          verifiedModelName = "models/gemini-2.0-flash";
+        } else if (flashModels.length > 0) {
+          verifiedModelName = flashModels[0];
+        }
+        log(`🎯 Gewähltes Live-Modell: <b>${verifiedModelName}</b>`);
+      } catch (e) {
+        log("⚠️ Model-Inspection Fehler: " + e.message);
+      }
+    }
+
     async function startSession() {
       orb.classList.add("active");
-      statusText.innerText = "Initialisiere...";
+      statusText.innerText = "Initialisiere Hardware...";
       isHandshakeReady = false;
 
       try {
@@ -186,48 +219,50 @@
           await audioContext.resume();
         }
         nextPlayTime = audioContext.currentTime;
-
-        log("🎙️ Mikrofon freigegeben.");
+        log("🎙️ Mikrofon aktiv.");
 
         if (!dynamicApiKey) {
-          statusText.innerText = "Hole Konfiguration...";
-          log("Lade API-Key vom Apps Script Backend...");
+          statusText.innerText = "Lade Backend-Konfiguration...";
+          log("Hole API-Key von Apps Script...");
           const res = await callAppsScriptJSONP("get_config");
 
           if (!res || !res.apiKey) {
-            log("🚨 Konfigurationsfehler: " + (res?.error || "Kein API-Key im Backend"));
+            log("🚨 Konfigurationsfehler: " + (res?.error || "Kein API-Key"));
             stopSession();
             return;
           }
           dynamicApiKey = res.apiKey.trim();
-          log("🔑 Backend-Key empfangen.");
+          log("🔑 Key geladen: " + dynamicApiKey.substring(0, 8) + "...");
+          
+          // Live-Prüfung der Modell-Endpunkte durchführen
+          await inspectAndVerifyAvailableModels(dynamicApiKey);
         }
 
-        statusText.innerText = "Verbinde mit Gemini Live...";
+        statusText.innerText = "Verbinde mit Live-Kanal...";
         connectWebSocket();
       } catch (err) {
-        log("❌ Hardware/Init-Fehler: " + err.message);
+        log("❌ Fehler: " + err.message);
         stopSession();
       }
     }
 
     function connectWebSocket() {
-      log("Öffne Live-WebSocket...");
+      log(`Öffne WebSocket (${verifiedModelName})...`);
       const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${dynamicApiKey}`;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        log("✅ WebSocket offen. Sende Setup-Frame...");
-        statusText.innerText = "Handshake mit Gemini...";
+        log("✅ WebSocket offen. Sende Setup...");
+        statusText.innerText = "Synchronisiere Setup...";
 
         const setupMessage = {
           setup: {
-            model: "models/gemini-2.0-flash-exp",
+            model: verifiedModelName,
             generationConfig: {
               responseModalities: ["AUDIO"]
             },
             systemInstruction: {
-              parts: [{ text: "Du bist JARVIS, der persönliche Sprachassistent von Hendrik Harm. Antworte immer auf Deutsch, präzise und direkt." }]
+              parts: [{ text: "Du bist JARVIS, der persönliche Assistent von Hendrik Harm. Antworte immer auf Deutsch, präzise und direkt." }]
             }
           }
         };
