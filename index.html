@@ -203,7 +203,7 @@
 
       ws.onopen = () => {
         log("✅ WebSocket gesichert aktiv.");
-        statusText.innerText = "JARVIS hört zu...";
+        statusText.innerText = "Synchronisiere Setup...";
 
         const setupMessage = {
           setup: {
@@ -223,8 +223,6 @@
         };
 
         ws.send(JSON.stringify(setupMessage));
-        isConnected = true;
-        startAudioStreaming();
       };
 
       ws.onmessage = async (event) => {
@@ -235,7 +233,14 @@
           }
           const res = JSON.parse(textData);
 
-          // Audio-Ausgabe von Gemini abspielen
+          if (res.setupComplete) {
+            log("🎯 Setup bestätigt – JARVIS hört zu!");
+            statusText.innerText = "JARVIS hört zu...";
+            isConnected = true;
+            startAudioStreaming();
+            return;
+          }
+
           if (res.serverContent?.modelTurn?.parts) {
             for (let p of res.serverContent.modelTurn.parts) {
               if (p.inlineData && p.inlineData.mimeType?.startsWith("audio/pcm")) {
