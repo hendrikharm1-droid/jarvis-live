@@ -40,7 +40,7 @@
 
     .status-box { text-align: center; font-size: 15px; color: #94a3b8; min-height: 24px; }
     .log-box {
-      width: 100%; height: 130px; background: rgba(15, 23, 42, 0.75);
+      width: 100%; height: 140px; background: rgba(15, 23, 42, 0.85);
       backdrop-filter: blur(10px); border: 1px solid #1e293b; border-radius: 12px;
       padding: 12px; font-family: monospace; font-size: 11px; color: #94a3b8; overflow-y: auto;
     }
@@ -78,7 +78,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Mobile Top-Level Gateway</p>
+    <p>Mobile Top-Level Gateway v2.2</p>
   </div>
 
   <div class="orb-container">
@@ -88,7 +88,7 @@
   </div>
 
   <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
-  <div class="log-box" id="logBox">[JARVIS Bereit]</div>
+  <div class="log-box" id="logBox">[JARVIS Diagnostik Bereit]</div>
 
   <script>
     const _ENC_KEY = "QVEuQWI4Uk42S09IQ3hlc2UxZHNZT1RGWHZ4UGFQZjFxdGVudUw4cDUySlNzal9yRWVEaFE=";
@@ -96,6 +96,7 @@
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
 
     let isConnected = false;
+    let isHandshakeReady = false;
     let ws = null;
     let audioContext = null;
     let inputContext = null;
@@ -173,6 +174,7 @@
     async function startSession() {
       orb.classList.add("active");
       statusText.innerText = "Initialisiere Hardware...";
+      isHandshakeReady = false;
 
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -196,22 +198,20 @@
     }
 
     function connectWebSocket() {
-      log("Öffne Live-WebSocket...");
+      log("Öffne WebSocket...");
       const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        log("✅ Kanal offen. Sende Setup...");
+        log("✅ WebSocket offen. Sende Setup-Frame...");
         statusText.innerText = "Handshake mit Gemini...";
 
+        // Minimales, voll kompatibles Setup für Live API v1alpha
         const setupMessage = {
           setup: {
             model: "models/gemini-2.0-flash-exp",
             generationConfig: {
               responseModalities: ["AUDIO"]
-            },
-            systemInstruction: {
-              parts: [{ text: "Du bist JARVIS, der persönliche Sprachassistent von Hendrik Harm. Antworte immer auf Deutsch, präzise und direkt." }]
             }
           }
         };
@@ -227,10 +227,17 @@
           }
           const res = JSON.parse(textData);
 
+          // Fehlerdiagnose von Google abfangen
+          if (res.error) {
+            log(`🚨 API-Fehler: ${res.error.message || JSON.stringify(res.error)}`);
+            return;
+          }
+
           if (res.setupComplete) {
             log("🎯 Setup bestätigt – JARVIS hört zu!");
             statusText.innerText = "JARVIS hört zu...";
             isConnected = true;
+            isHandshakeReady = true;
             startAudioStreaming();
             return;
           }
@@ -243,13 +250,13 @@
             }
           }
         } catch (e) {
-          log("⚠️ Parser-Fehler: " + e.message);
+          log("⚠️ Nachricht: " + e.message);
         }
       };
 
-      ws.onerror = (e) => log("❌ WebSocket Verbindungsfehler");
+      ws.onerror = (e) => log("❌ WebSocket Fehler");
       ws.onclose = (e) => {
-        log(`Sitzung beendet (${e.code || "getrennt"}).`);
+        log(`Sitzung beendet (${e.code}: ${e.reason || "Policy Violation / Key ungültig"}).`);
         stopSession();
       };
     }
@@ -260,7 +267,7 @@
       scriptProcessor = inputContext.createScriptProcessor(4096, 1, 1);
 
       scriptProcessor.onaudioprocess = (e) => {
-        if (!isConnected || !ws || ws.readyState !== WebSocket.OPEN) return;
+        if (!isConnected || !isHandshakeReady || !ws || ws.readyState !== WebSocket.OPEN) return;
         const input = e.inputBuffer.getChannelData(0);
         const pcm16 = new Int16Array(input.length);
         for (let i = 0; i < input.length; i++) {
@@ -307,6 +314,7 @@
 
     function stopSession() {
       isConnected = false;
+      isHandshakeReady = false;
       if (ws) { try { ws.close(); } catch(e){} ws = null; }
       if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
       if (scriptProcessor) { try { scriptProcessor.disconnect(); } catch(e){} scriptProcessor = null; }
