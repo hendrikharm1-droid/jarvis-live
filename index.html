@@ -88,10 +88,11 @@
   </div>
 
   <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
-  <div class="log-box" id="logBox">[JARVIS Online]</div>
+  <div class="log-box" id="logBox">[JARVIS Bereit]</div>
 
   <script>
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
+    const LIVE_MODEL_NAME = "models/gemini-2.0-flash-realtime-exp";
 
     let dynamicApiKey = null;
     let isConnected = false;
@@ -199,7 +200,7 @@
             return;
           }
           dynamicApiKey = res.apiKey.trim();
-          log("🔑 Key erfolgreich geladen.");
+          log("🔑 Key geladen.");
         }
 
         statusText.innerText = "Verbinde mit Gemini Live...";
@@ -211,19 +212,24 @@
     }
 
     function connectWebSocket() {
-      log("Öffne Live-WebSocket...");
+      log(`Öffne Live-WebSocket (${LIVE_MODEL_NAME})...`);
       const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${dynamicApiKey}`;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         log("✅ WebSocket offen. Sende Setup-Frame...");
-        statusText.innerText = "Synchronisiere Setup...";
+        statusText.innerText = "Handshake mit Gemini...";
 
         const setupMessage = {
           setup: {
-            model: "models/gemini-2.0-flash-exp",
+            model: LIVE_MODEL_NAME,
             generationConfig: {
-              responseModalities: ["AUDIO"]
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: { voiceName: "Aoede" }
+                }
+              }
             },
             systemInstruction: {
               parts: [{ text: "Du bist JARVIS, der persönliche Sprachassistent von Hendrik Harm. Antworte immer direkt, sympathisch und präzise auf Deutsch per Sprache." }]
