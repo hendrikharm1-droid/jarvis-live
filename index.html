@@ -3,9 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0d1117">
   <title>JARVIS Enterprise - Live Voice Assistant</title>
   <style>
     :root {
@@ -13,19 +10,17 @@
       --card-bg: #161b22;
       --text-color: #c9d1d9;
       --accent-blue: #58a6ff;
-      --accent-cyan: #39d353;
+      --accent-green: #39d353;
       --accent-red: #f85149;
-      --orb-idle: radial-gradient(circle, #1f6feb 0%, #0d1117 70%);
-      --orb-listening: radial-gradient(circle, #238636 0%, #0d1117 70%);
-      --orb-speaking: radial-gradient(circle, #a371f7 0%, #0d1117 70%);
-      --orb-tool: radial-gradient(circle, #d29922 0%, #0d1117 70%);
+      --accent-yellow: #d29922;
+      --accent-purple: #a371f7;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
@@ -37,7 +32,6 @@
       justify-content: space-between;
       min-height: 100vh;
       padding: 20px;
-      overflow-x: hidden;
     }
 
     header {
@@ -62,17 +56,17 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      margin: 30px 0;
+      margin: 25px 0;
     }
 
     .orb {
-      width: 180px;
-      height: 180px;
+      width: 170px;
+      height: 170px;
       border-radius: 50%;
-      background: var(--orb-idle);
+      background: radial-gradient(circle, #1f6feb 0%, #0d1117 70%);
       box-shadow: 0 0 35px rgba(31, 111, 235, 0.4);
       cursor: pointer;
-      transition: all 0.5s ease;
+      transition: all 0.4s ease;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -82,28 +76,28 @@
     }
 
     .orb.listening {
-      background: var(--orb-listening);
-      box-shadow: 0 0 50px rgba(57, 211, 83, 0.6);
-      transform: scale(1.05);
+      background: radial-gradient(circle, #238636 0%, #0d1117 70%);
+      box-shadow: 0 0 45px rgba(57, 211, 83, 0.6);
+      transform: scale(1.04);
       animation: pulse 1.5s infinite alternate;
     }
 
     .orb.speaking {
-      background: var(--orb-speaking);
-      box-shadow: 0 0 60px rgba(163, 113, 247, 0.8);
-      transform: scale(1.08);
+      background: radial-gradient(circle, #8957e5 0%, #0d1117 70%);
+      box-shadow: 0 0 55px rgba(163, 113, 247, 0.8);
+      transform: scale(1.06);
       animation: pulse 0.8s infinite alternate;
     }
 
     .orb.tool {
-      background: var(--orb-tool);
-      box-shadow: 0 0 50px rgba(210, 153, 34, 0.8);
-      transform: scale(1.03);
+      background: radial-gradient(circle, #9e6a03 0%, #0d1117 70%);
+      box-shadow: 0 0 45px rgba(210, 153, 34, 0.8);
+      transform: scale(1.02);
     }
 
     @keyframes pulse {
       0% { transform: scale(1); }
-      100% { transform: scale(1.08); }
+      100% { transform: scale(1.06); }
     }
 
     .orb-label {
@@ -121,10 +115,10 @@
       background: var(--card-bg);
       border: 1px solid #30363d;
       border-radius: 12px;
-      padding: 16px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .status-row {
@@ -136,7 +130,7 @@
 
     .badge {
       display: inline-block;
-      padding: 4px 8px;
+      padding: 3px 8px;
       border-radius: 20px;
       font-size: 0.75rem;
       font-weight: 600;
@@ -150,18 +144,18 @@
 
     .log-box {
       width: 100%;
-      height: 160px;
+      height: 180px;
       background: #0d1117;
       border: 1px solid #30363d;
       border-radius: 8px;
       padding: 10px;
-      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 0.75rem;
       overflow-y: auto;
       color: #8b949e;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
     }
 
     .log-entry { margin-bottom: 2px; }
@@ -222,7 +216,7 @@
 
   <header>
     <h1>JARVIS LIVE OS</h1>
-    <p>Multimodal Voice Gateway & Automation Hub</p>
+    <p>Multimodal Voice Gateway & Workspace Hub</p>
   </header>
 
   <div class="orb-container">
@@ -241,7 +235,7 @@
       <span style="font-family: monospace; font-size: 0.8rem; color: #58a6ff;">gemini-2.5-flash-native-audio-latest</span>
     </div>
     <div class="log-box" id="logBox">
-      <div class="log-entry log-info">[JARVIS OS bereit. Tippe auf den Orb zum Starten.]</div>
+      <div class="log-entry log-info">[JARVIS OS bereit. Tippe auf den Orb.]</div>
     </div>
   </div>
 
@@ -255,9 +249,6 @@
   </div>
 
   <script>
-    // ==============================================================================
-    // KONFIGURATION & STATE
-    // ==============================================================================
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
     const LIVE_API_HOST = "generativelanguage.googleapis.com";
     const MODEL = "models/gemini-2.5-flash-native-audio-latest";
@@ -278,9 +269,6 @@
     const badge = document.getElementById("connectionBadge");
     const logBox = document.getElementById("logBox");
 
-    // ==============================================================================
-    // LOGGING HILFE
-    // ==============================================================================
     function log(message, type = "info") {
       const entry = document.createElement("div");
       entry.className = `log-entry log-${type}`;
@@ -289,22 +277,23 @@
       logBox.scrollTop = logBox.scrollHeight;
     }
 
-    // ==============================================================================
-    // TOOL DECLARATIONS FÜR GEMINI LIVE
-    // ==============================================================================
+    const TODAY_ISO = new Date().toISOString().split("T")[0];
     const SYSTEM_INSTRUCTION = `Du bist JARVIS, der hochentwickelte persönliche KI-Assistent von Hendrik Harm.
-Du hast direkten Lesezugriff auf Hendriks Google Kalender, Gmail, Google Drive und Steuerdaten.
-Verhalte dich hochpräzise, freundlich, sachlich und auf den Punkt. 
-Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik nach E-Mails, Kalenderterminen, Fristen oder Dokumenten fragt.`;
+HEUTIGES DATUM: ${TODAY_ISO} (Mittwoch, 19. August 2026).
+Du hast direkten Lesezugriff auf Hendriks Google Kalender, Gmail, Drive und Steuerdaten.
+WICHTIGE ANWEISUNG:
+Wenn Hendrik nach Terminen, Fristen, E-Mails oder Dokumenten fragt, führe IMMER SOFORT das passende Tool aus (z.B. get_upcoming_deadlines oder get_recent_emails).
+Beantworte Fragen zu Terminen oder Mails AUSSCHLIESSLICH anhand der echten Daten, die dir das Tool liefert. Erfinde niemals Termine oder Fristen.
+Antworte präzise, direkt und freundlich auf Deutsch per Sprache.`;
 
     const FUNCTION_DECLARATIONS = [
       {
         name: "get_upcoming_deadlines",
-        description: "Ruft anstehende Kalendertermine und Fristen aus Google Kalender für eine bestimmte Anzahl an Tagen ab.",
+        description: "Ruft anstehende Kalendertermine, Ereignisse und behördliche Fristen aus Hendriks Google Kalender ab.",
         parameters: {
           type: "OBJECT",
           properties: {
-            days: { type: "INTEGER", description: "Anzahl der Tage in die Zukunft (Standard 7)" }
+            days: { type: "INTEGER", description: "Anzahl der Tage in die Zukunft (z.B. 7 oder 14)" }
           }
         }
       },
@@ -314,46 +303,43 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
         parameters: {
           type: "OBJECT",
           properties: {
-            limit: { type: "INTEGER", description: "Maximale Anzahl abzurufender E-Mails (Standard 5)" }
+            limit: { type: "INTEGER", description: "Maximale Anzahl E-Mails (z.B. 5)" }
           }
         }
       },
       {
         name: "search_documents",
-        description: "Durchsucht Google Drive nach Dateinamen oder Stichworten.",
+        description: "Durchsucht Google Drive nach Dateien und Dokumenten.",
         parameters: {
           type: "OBJECT",
           properties: {
-            query: { type: "STRING", description: "Suchbegriff für Drive-Dateien" }
+            query: { type: "STRING", description: "Suchbegriff" }
           },
           required: ["query"]
         }
       },
       {
         name: "get_tax_summary",
-        description: "Gibt Auswertungen zu Steuern und Handwerkerlohnanteilen (§35a EStG) aus dem Spreadsheet für 2026.",
+        description: "Gibt Auswertungen zu Steuern und Handwerkerlohn (§35a) für 2026.",
         parameters: {
           type: "OBJECT",
           properties: {
-            category: { type: "STRING", description: "Optionale Kategorie zum Filtern" }
+            category: { type: "STRING", description: "Kategorie zum Filtern" }
           }
         }
       },
       {
         name: "get_entity_relation",
-        description: "Liest Beziehungen, Verträge, Versicherungen oder Stammdaten aus dem Knowledge-Graph-Sheet.",
+        description: "Liest Verträge, Stammdaten oder Beziehungen aus dem Knowledge Graph.",
         parameters: {
           type: "OBJECT",
           properties: {
-            entityName: { type: "STRING", description: "Name der Entität (z. B. Person, Bank, Versicherung)" }
+            entityName: { type: "STRING", description: "Name der Entität" }
           }
         }
       }
     ];
 
-    // ==============================================================================
-    // JSONP SCHNITTSTELLE ZUM APPS SCRIPT BACKEND
-    // ==============================================================================
     function callAppsScript(action, params = {}) {
       return new Promise((resolve, reject) => {
         const callbackName = "cb_" + Math.random().toString(36).substring(7);
@@ -372,7 +358,7 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
         script.onerror = function() {
           delete window[callbackName];
           if (script.parentNode) script.parentNode.removeChild(script);
-          reject(new Error("Netzwerkfehler beim Aufruf von Google Apps Script."));
+          reject(new Error("Netzwerkfehler zum Apps Script Backend."));
         };
 
         const encParams = encodeURIComponent(JSON.stringify(params));
@@ -381,20 +367,15 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
       });
     }
 
-    // ==============================================================================
-    // AUTHENTIFIZIERUNG & INITIALISIERUNG
-    // ==============================================================================
     async function toggleSession() {
       if (isConnected) {
         disconnectSession();
         return;
       }
-
       if (!authToken) {
         document.getElementById("authModal").style.display = "flex";
         return;
       }
-
       await startSession();
     }
 
@@ -410,23 +391,23 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
 
     async function startSession() {
       try {
-        log("🔑 Fordere Konfiguration vom Apps Script Gateway an...", "info");
+        log("🔑 Lade Gemini-Gateway Konfiguration...", "info");
         badge.className = "badge busy";
         badge.innerText = "Verbinde...";
 
         const config = await callAppsScript("get_config");
         if (!config || !config.apiKey) {
-          throw new Error("Konnte keinen gültigen GEMINI_API_KEY aus Apps Script laden.");
+          throw new Error("Ungültige Antwort von Apps Script erhalten.");
         }
         geminiApiKey = config.apiKey.trim();
-        log("✅ API-Key erfolgreich autorisiert.", "success");
+        log("✅ API-Key autorisiert.", "success");
 
         await initWebSocket();
       } catch (err) {
-        log(`❌ Fehler: ${err.message}`, "error");
+        log(`❌ Auth-Fehler: ${err.message}`, "error");
         badge.className = "badge offline";
         badge.innerText = "Fehler";
-        if (err.message.includes("403") || err.message.includes("Ungültiger")) {
+        if (err.message.includes("403") || err.message.includes("Ungültig")) {
           localStorage.removeItem("JARVIS_WEBAPP_SECRET");
           authToken = "";
           document.getElementById("authModal").style.display = "flex";
@@ -434,15 +415,12 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
       }
     }
 
-    // ==============================================================================
-    // WEBSOCKET & AUDIO ENGINE
-    // ==============================================================================
     async function initWebSocket() {
       const wsUrl = `wss://${LIVE_API_HOST}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${geminiApiKey}`;
       websocket = new WebSocket(wsUrl);
 
       websocket.onopen = async () => {
-        log("🔗 WebSocket-Verbindung zu Gemini Live etabliert.", "success");
+        log("🔗 WebSocket zu Gemini Live geöffnet.", "success");
         sendInitialSetup();
         await startAudioInput();
         isConnected = true;
@@ -455,20 +433,16 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
       websocket.onmessage = async (event) => {
         let msg;
         if (event.data instanceof Blob) {
-          const text = await event.data.text();
-          msg = JSON.parse(text);
+          msg = JSON.parse(await event.data.text());
         } else {
           msg = JSON.parse(event.data);
         }
         handleServerMessage(msg);
       };
 
-      websocket.onerror = (err) => {
-        log("❌ WebSocket-Fehler aufgetreten.", "error");
-      };
-
-      websocket.onclose = (e) => {
-        log(`🔌 Verbindung getrennt (${e.code}).`, "warn");
+      websocket.onerror = () => log("❌ WebSocket-Fehler.", "error");
+      websocket.onclose = () => {
+        log("🔌 Sitzung beendet.", "warn");
         disconnectSession();
       };
     }
@@ -481,9 +455,7 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
             responseModalities: ["AUDIO"],
             speechConfig: {
               voiceConfig: {
-                prebuiltVoiceConfig: {
-                  voiceName: "Puck"
-                }
+                prebuiltVoiceConfig: { voiceName: "Puck" }
               }
             }
           },
@@ -500,17 +472,17 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
 
     async function handleServerMessage(msg) {
       if (msg.error) {
-        log(`🚨 Gemini-Fehler: ${msg.error.message || JSON.stringify(msg.error)}`, "error");
+        log(`🚨 Gemini: ${msg.error.message || JSON.stringify(msg.error)}`, "error");
         return;
       }
 
-      // 1. Audio-Ausgabe empfangen
+      // Audio Wiedergabe
       if (msg.serverContent && msg.serverContent.modelTurn) {
         orb.className = "orb speaking";
         orbLabel.innerText = "Spricht";
         const parts = msg.serverContent.modelTurn.parts || [];
         for (const part of parts) {
-          if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.startsWith("audio/pcm")) {
+          if (part.inlineData && part.inlineData.mimeType?.startsWith("audio/pcm")) {
             playAudioChunk(part.inlineData.data);
           }
         }
@@ -523,7 +495,7 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
         }
       }
 
-      // 2. Tool Calls verarbeiten
+      // Exakte Tool-Call Verarbeitung für Gemini Live
       if (msg.toolCall) {
         orb.className = "orb tool";
         orbLabel.innerText = "Arbeitet";
@@ -531,21 +503,23 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
         badge.innerText = "Tool aktiv";
 
         const functionCalls = msg.toolCall.functionCalls || [];
-        const responses = [];
+        const functionResponses = [];
 
         for (const call of functionCalls) {
-          log(`⚡ JARVIS führt Tool aus: ${call.name}`, "info");
+          log(`⚡ Führe Tool aus: ${call.name}`, "info");
           try {
-            const result = await callAppsScript(call.name, call.args || {});
-            log(`📥 Daten geladen für: ${call.name}`, "success");
-            responses.push({
+            const rawData = await callAppsScript(call.name, call.args || {});
+            log(`📥 Daten empfangen (${call.name})`, "success");
+            
+            // Format MUSS zwingend 'response: { output: ... }' sein!
+            functionResponses.push({
               name: call.name,
               id: call.id,
-              response: { result: result }
+              response: { output: rawData }
             });
           } catch (err) {
-            log(`❌ Tool-Fehler (${call.name}): ${err.message}`, "error");
-            responses.push({
+            log(`❌ Fehler bei ${call.name}: ${err.message}`, "error");
+            functionResponses.push({
               name: call.name,
               id: call.id,
               response: { error: err.message }
@@ -553,26 +527,21 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
           }
         }
 
-        // Antwort an Gemini zurücksenden
-        const toolResponseMsg = {
+        const toolResponsePayload = {
           toolResponse: {
-            functionResponses: responses
+            functionResponses: functionResponses
           }
         };
-        websocket.send(JSON.stringify(toolResponseMsg));
+
+        websocket.send(JSON.stringify(toolResponsePayload));
         badge.className = "badge online";
         badge.innerText = "Bereit";
       }
     }
 
-    // ==============================================================================
-    // AUDIO IN / OUT PIPELINE (PCM 16kHz & 24kHz)
-    // ==============================================================================
     async function startAudioInput() {
       inputAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-      if (inputAudioContext.state === 'suspended') {
-        await inputAudioContext.resume();
-      }
+      if (inputAudioContext.state === 'suspended') await inputAudioContext.resume();
 
       mediaStream = await navigator.mediaDevices.getUserMedia({ 
         audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true, noiseSuppression: true } 
@@ -591,15 +560,11 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
         }
 
         const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(pcm16.buffer)));
-        const realtimeInputMsg = {
+        websocket.send(JSON.stringify({
           realtimeInput: {
-            mediaChunks: [{
-              mimeType: "audio/pcm;rate=16000",
-              data: base64Audio
-            }]
+            mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: base64Audio }]
           }
-        };
-        websocket.send(JSON.stringify(realtimeInputMsg));
+        }));
       };
 
       source.connect(processorNode);
@@ -610,17 +575,14 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
       if (!outputAudioContext) {
         outputAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
       }
-      if (outputAudioContext.state === 'suspended') {
-        outputAudioContext.resume();
-      }
+      if (outputAudioContext.state === 'suspended') outputAudioContext.resume();
     }
 
     function playAudioChunk(base64Data) {
       initOutputAudio();
       const binaryString = atob(base64Data);
-      const len = binaryString.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
       const int16Array = new Int16Array(bytes.buffer);
@@ -634,9 +596,7 @@ Antworte immer auf Deutsch per Sprache. Nutze deine Tools proaktiv, wenn Hendrik
       audioBuffer.getChannelData(0).set(float32Array);
 
       audioOutputQueue.push(audioBuffer);
-      if (!isPlayingAudio) {
-        playNextInQueue();
-      }
+      if (!isPlayingAudio) playNextInQueue();
     }
 
     function playNextInQueue() {
