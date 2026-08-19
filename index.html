@@ -249,7 +249,7 @@
   </div>
 
   <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
+    const APPS_SCRIPT_URL = "[https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec](https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec)";
     const LIVE_API_HOST = "generativelanguage.googleapis.com";
     const MODEL = "models/gemini-2.5-flash-native-audio-latest";
 
@@ -280,9 +280,10 @@
     const TODAY_ISO = new Date().toISOString().split("T")[0];
     const SYSTEM_INSTRUCTION = `Du bist JARVIS, der hochentwickelte persönliche KI-Assistent von Hendrik Harm.
 HEUTIGES DATUM: ${TODAY_ISO} (Mittwoch, 19. August 2026).
-Du hast direkten Lesezugriff auf Hendriks Google Kalender, Gmail, Drive und Steuerdaten.
+Du hast direkten Lese- und Schreibzugriff auf Hendriks Google Kalender, Gmail, Drive und Steuerdaten.
 WICHTIGE ANWEISUNG:
-Wenn Hendrik nach Terminen, Fristen, E-Mails oder Dokumenten fragt, führe IMMER SOFORT das passende Tool aus (z.B. get_upcoming_deadlines oder get_recent_emails).
+Wenn Hendrik nach Terminen, Fristen, E-Mails oder Dokumenten fragt oder eine E-Mail als Entwurf anlegen möchte, führe IMMER SOFORT das passende Tool aus.
+Sage NIEMALS, dass du eine E-Mail erstellt hast, wenn du nicht zuvor erfolgreich das Tool "create_draft_with_attachment" aufgerufen hast.
 Beantworte Fragen zu Terminen oder Mails AUSSCHLIESSLICH anhand der echten Daten, die dir das Tool liefert. Erfinde niemals Termine oder Fristen.
 Antworte präzise, direkt und freundlich auf Deutsch per Sprache.`;
 
@@ -309,7 +310,7 @@ Antworte präzise, direkt und freundlich auf Deutsch per Sprache.`;
       },
       {
         name: "search_documents",
-        description: "Durchsucht Google Drive nach Dateien und Dokumenten.",
+        description: "Durchsucht Google Drive und den Vektor-Index nach Dateien und Dokumenten.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -319,8 +320,23 @@ Antworte präzise, direkt und freundlich auf Deutsch per Sprache.`;
         }
       },
       {
+        name: "create_draft_with_attachment",
+        description: "Erstellt einen echten E-Mail-Entwurf im Gmail-Postfach von Hendrik Harm mit optionalem Drive-Anhang.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            recipient: { type: "STRING", description: "E-Mail-Adresse des Empfängers (optional)" },
+            subject: { type: "STRING", description: "Betreffzeile der E-Mail" },
+            body: { type: "STRING", description: "Inhalt/Text der E-Mail" },
+            fileId: { type: "STRING", description: "ID der zuvor gefundenen Drive-Datei für den Anhang (optional)" },
+            fileName: { type: "STRING", description: "Dateiname der anzuhängenden Datei (optional)" }
+          },
+          required: ["subject", "body"]
+        }
+      },
+      {
         name: "get_tax_summary",
-        description: "Gibt Auswertungen zu Steuern und Handwerkerlohn (§35a) für 2026.",
+        description: "Gibt Auswertungen zu Steuern und Handwerkerlohn (§35a EStG) für 2026.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -476,7 +492,6 @@ Antworte präzise, direkt und freundlich auf Deutsch per Sprache.`;
         return;
       }
 
-      // Audio Wiedergabe
       if (msg.serverContent && msg.serverContent.modelTurn) {
         orb.className = "orb speaking";
         orbLabel.innerText = "Spricht";
@@ -495,7 +510,6 @@ Antworte präzise, direkt und freundlich auf Deutsch per Sprache.`;
         }
       }
 
-      // Exakte Tool-Call Verarbeitung für Gemini Live
       if (msg.toolCall) {
         orb.className = "orb tool";
         orbLabel.innerText = "Arbeitet";
@@ -511,7 +525,6 @@ Antworte präzise, direkt und freundlich auf Deutsch per Sprache.`;
             const rawData = await callAppsScript(call.name, call.args || {});
             log(`📥 Daten empfangen (${call.name})`, "success");
             
-            // Format MUSS zwingend 'response: { output: ... }' sein!
             functionResponses.push({
               name: call.name,
               id: call.id,
