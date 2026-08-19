@@ -3,647 +3,455 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>JARVIS Enterprise - Live Voice Assistant</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#090d16">
+  <title>JARVIS Live OS</title>
   <style>
-    :root {
-      --bg-color: #0d1117;
-      --card-bg: #161b22;
-      --text-color: #c9d1d9;
-      --accent-blue: #58a6ff;
-      --accent-green: #39d353;
-      --accent-red: #f85149;
-      --accent-yellow: #d29922;
-      --accent-purple: #a371f7;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
+      background: radial-gradient(circle at 50% 30%, #172554 0%, #090d16 100%);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      min-height: 100vh;
-      padding: 20px;
+      padding: 40px 20px;
+      overflow: hidden;
     }
-
-    header {
-      text-align: center;
-      margin-top: 10px;
-    }
-
-    header h1 {
-      color: #f0f6fc;
-      font-size: 1.6rem;
-      letter-spacing: 2px;
-    }
-
-    header p {
-      font-size: 0.85rem;
-      color: #8b949e;
-      margin-top: 4px;
-    }
-
-    .orb-container {
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin: 25px 0;
-    }
-
+    .header { text-align: center; }
+    .header h1 { font-size: 22px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; }
+    .header p { font-size: 13px; color: #64748b; margin-top: 4px; }
+    
+    .orb-container { position: relative; display: flex; align-items: center; justify-content: center; }
     .orb {
-      width: 170px;
-      height: 170px;
-      border-radius: 50%;
-      background: radial-gradient(circle, #1f6feb 0%, #0d1117 70%);
-      box-shadow: 0 0 35px rgba(31, 111, 235, 0.4);
-      cursor: pointer;
-      transition: all 0.4s ease;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border: 2px solid rgba(255, 255, 255, 0.1);
-      -webkit-tap-highlight-color: transparent;
+      width: 160px; height: 160px; border-radius: 50%;
+      background: radial-gradient(circle, #38bdf8 10%, #2563eb 60%, #1e1b4b 100%);
+      box-shadow: 0 0 50px rgba(56, 189, 248, 0.4);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.3s ease; -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
+    .orb svg { width: 50px; height: 50px; fill: white; pointer-events: none; }
+    .orb.active { animation: pulse 1.4s infinite alternate ease-in-out; box-shadow: 0 0 90px rgba(56, 189, 248, 0.95); }
+    @keyframes pulse { 0% { transform: scale(0.95); } 100% { transform: scale(1.18); filter: brightness(1.2); } }
 
-    .orb.listening {
-      background: radial-gradient(circle, #238636 0%, #0d1117 70%);
-      box-shadow: 0 0 45px rgba(57, 211, 83, 0.6);
-      transform: scale(1.04);
-      animation: pulse 1.5s infinite alternate;
-    }
-
-    .orb.speaking {
-      background: radial-gradient(circle, #8957e5 0%, #0d1117 70%);
-      box-shadow: 0 0 55px rgba(163, 113, 247, 0.8);
-      transform: scale(1.06);
-      animation: pulse 0.8s infinite alternate;
-    }
-
-    .orb.tool {
-      background: radial-gradient(circle, #9e6a03 0%, #0d1117 70%);
-      box-shadow: 0 0 45px rgba(210, 153, 34, 0.8);
-      transform: scale(1.02);
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      100% { transform: scale(1.06); }
-    }
-
-    .orb-label {
-      font-weight: 600;
-      font-size: 0.95rem;
-      color: #ffffff;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      pointer-events: none;
-    }
-
-    .status-panel {
-      width: 100%;
-      max-width: 600px;
-      background: var(--card-bg);
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .status-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.85rem;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      background: #21262d;
-      color: #8b949e;
-    }
-
-    .badge.online { background: #238636; color: #fff; }
-    .badge.busy { background: #d29922; color: #fff; }
-    .badge.offline { background: #da3633; color: #fff; }
-
+    .status-box { text-align: center; font-size: 15px; color: #94a3b8; min-height: 24px; }
     .log-box {
-      width: 100%;
-      height: 180px;
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 10px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.75rem;
-      overflow-y: auto;
-      color: #8b949e;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
+      width: 100%; height: 160px; background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px); border: 1px solid #1e293b; border-radius: 12px;
+      padding: 12px; font-family: monospace; font-size: 11px; color: #94a3b8; overflow-y: auto;
     }
 
-    .log-entry { margin-bottom: 2px; }
-    .log-info { color: #58a6ff; }
-    .log-success { color: #39d353; }
-    .log-warn { color: #d29922; }
-    .log-error { color: #f85149; }
-
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(10px);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-      padding: 20px;
+    .auth-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(9, 13, 22, 0.95); backdrop-filter: blur(15px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 100; padding: 20px;
     }
-
-    .modal {
-      background: var(--card-bg);
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      padding: 24px;
-      max-width: 400px;
-      width: 100%;
-      text-align: center;
+    .auth-box {
+      background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+      padding: 25px; width: 100%; max-width: 340px; text-align: center;
     }
-
-    .modal h3 { margin-bottom: 12px; color: #fff; }
-    .modal input {
-      width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px solid #30363d;
-      background: #0d1117;
-      color: #fff;
-      margin-bottom: 16px;
-      font-size: 1rem;
-      text-align: center;
+    .auth-box input {
+      width: 100%; padding: 12px; margin: 15px 0; border-radius: 8px;
+      border: 1px solid #475569; background: #0f172a; color: white; font-size: 16px; text-align: center;
     }
-
-    .modal button {
-      width: 100%;
-      padding: 12px;
-      border-radius: 8px;
-      border: none;
-      background: var(--accent-blue);
-      color: #fff;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
+    .auth-box button {
+      width: 100%; padding: 12px; border-radius: 8px; border: none;
+      background: #38bdf8; color: #0f172a; font-weight: bold; font-size: 16px; cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>JARVIS LIVE OS</h1>
-    <p>Multimodal Voice Gateway & Workspace Hub</p>
-  </header>
+  <div class="auth-overlay" id="authOverlay" style="display: none;">
+    <div class="auth-box">
+      <h3>🔐 JARVIS Security Gate</h3>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Sicherheitsschlüssel eingeben:</p>
+      <input type="password" id="tokenInput" placeholder="Passwort / PIN">
+      <button onclick="saveAuthToken()">Entsperren</button>
+    </div>
+  </div>
+
+  <div class="header">
+    <h1>JARVIS Live OS</h1>
+    <p>Mobile Native Voice Hub</p>
+  </div>
 
   <div class="orb-container">
-    <div class="orb" id="voiceOrb" onclick="toggleSession()">
-      <span class="orb-label" id="orbLabel">Start</span>
+    <div class="orb" id="voiceOrb">
+      <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
     </div>
   </div>
 
-  <div class="status-panel">
-    <div class="status-row">
-      <span>Status:</span>
-      <span id="connectionBadge" class="badge offline">Getrennt</span>
-    </div>
-    <div class="status-row">
-      <span>Aktives Modell:</span>
-      <span style="font-family: monospace; font-size: 0.8rem; color: #58a6ff;">gemini-2.5-flash-native-audio-latest</span>
-    </div>
-    <div class="log-box" id="logBox">
-      <div class="log-entry log-info">[JARVIS OS bereit. Tippe auf den Orb.]</div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="authModal">
-    <div class="modal">
-      <h3>Sicherheitsschlüssel erforderlich</h3>
-      <p style="font-size: 0.85rem; color: #8b949e; margin-bottom: 15px;">Gib dein <code>JARVIS_WEBAPP_SECRET</code> ein:</p>
-      <input type="password" id="secretInput" placeholder="Passwort / PIN">
-      <button onclick="saveSecret()">Verbinden</button>
-    </div>
-  </div>
+  <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
+  <div class="log-box" id="logBox">[JARVIS Bereit]</div>
 
   <script>
-    const APPS_SCRIPT_URL = "[https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec](https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec)";
-    const LIVE_API_HOST = "generativelanguage.googleapis.com";
-    const MODEL = "models/gemini-2.5-flash-native-audio-latest";
+    const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
+    const TARGET_MODEL = "models/gemini-2.5-flash-native-audio-latest";
 
-    let authToken = localStorage.getItem("JARVIS_WEBAPP_SECRET") || "";
-    let geminiApiKey = "";
+    let dynamicApiKey = null;
     let isConnected = false;
-    let websocket = null;
-    let inputAudioContext = null;
-    let outputAudioContext = null;
+    let isHandshakeReady = false;
+    let ws = null;
+    let audioContext = null;
+    let inputContext = null;
     let mediaStream = null;
-    let processorNode = null;
-    let audioOutputQueue = [];
-    let isPlayingAudio = false;
+    let scriptProcessor = null;
+    let nextPlayTime = 0;
+    let authToken = localStorage.getItem("JARVIS_AUTH_TOKEN") || localStorage.getItem("JARVIS_WEBAPP_SECRET") || "";
 
     const orb = document.getElementById("voiceOrb");
-    const orbLabel = document.getElementById("orbLabel");
-    const badge = document.getElementById("connectionBadge");
-    const logBox = document.getElementById("logBox");
+    const statusText = document.getElementById("statusText");
 
-    function log(message, type = "info") {
-      const entry = document.createElement("div");
-      entry.className = `log-entry log-${type}`;
-      entry.innerText = `[${new Date().toLocaleTimeString()}] ${message}`;
-      logBox.appendChild(entry);
-      logBox.scrollTop = logBox.scrollHeight;
+    function log(msg) {
+      const b = document.getElementById("logBox");
+      b.innerHTML += `<br>• ${msg}`;
+      b.scrollTop = b.scrollHeight;
     }
 
-    const TODAY_ISO = new Date().toISOString().split("T")[0];
-    const SYSTEM_INSTRUCTION = `Du bist JARVIS, der hochentwickelte persönliche KI-Assistent von Hendrik Harm.
-HEUTIGES DATUM: ${TODAY_ISO} (Mittwoch, 19. August 2026).
-Du hast direkten Lese- und Schreibzugriff auf Hendriks Google Kalender, Gmail, Drive und Steuerdaten.
-WICHTIGE ANWEISUNG:
-Wenn Hendrik nach Terminen, Fristen, E-Mails oder Dokumenten fragt oder eine E-Mail als Entwurf anlegen möchte, führe IMMER SOFORT das passende Tool aus.
-Sage NIEMALS, dass du eine E-Mail erstellt hast, wenn du nicht zuvor erfolgreich das Tool "create_draft_with_attachment" aufgerufen hast.
-Beantworte Fragen zu Terminen oder Mails AUSSCHLIESSLICH anhand der echten Daten, die dir das Tool liefert. Erfinde niemals Termine oder Fristen.
-Antworte präzise, direkt und freundlich auf Deutsch per Sprache.`;
-
-    const FUNCTION_DECLARATIONS = [
-      {
-        name: "get_upcoming_deadlines",
-        description: "Ruft anstehende Kalendertermine, Ereignisse und behördliche Fristen aus Hendriks Google Kalender ab.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            days: { type: "INTEGER", description: "Anzahl der Tage in die Zukunft (z.B. 7 oder 14)" }
-          }
-        }
-      },
-      {
-        name: "get_recent_emails",
-        description: "Ruft ungelesene E-Mails aus dem Gmail-Posteingang von Hendrik Harm ab.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            limit: { type: "INTEGER", description: "Maximale Anzahl E-Mails (z.B. 5)" }
-          }
-        }
-      },
-      {
-        name: "search_documents",
-        description: "Durchsucht Google Drive und den Vektor-Index nach Dateien und Dokumenten.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            query: { type: "STRING", description: "Suchbegriff" }
-          },
-          required: ["query"]
-        }
-      },
-      {
-        name: "create_draft_with_attachment",
-        description: "Erstellt einen echten E-Mail-Entwurf im Gmail-Postfach von Hendrik Harm mit optionalem Drive-Anhang.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            recipient: { type: "STRING", description: "E-Mail-Adresse des Empfängers (optional)" },
-            subject: { type: "STRING", description: "Betreffzeile der E-Mail" },
-            body: { type: "STRING", description: "Inhalt/Text der E-Mail" },
-            fileId: { type: "STRING", description: "ID der zuvor gefundenen Drive-Datei für den Anhang (optional)" },
-            fileName: { type: "STRING", description: "Dateiname der anzuhängenden Datei (optional)" }
-          },
-          required: ["subject", "body"]
-        }
-      },
-      {
-        name: "get_tax_summary",
-        description: "Gibt Auswertungen zu Steuern und Handwerkerlohn (§35a EStG) für 2026.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            category: { type: "STRING", description: "Kategorie zum Filtern" }
-          }
-        }
-      },
-      {
-        name: "get_entity_relation",
-        description: "Liest Verträge, Stammdaten oder Beziehungen aus dem Knowledge Graph.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            entityName: { type: "STRING", description: "Name der Entität" }
-          }
-        }
-      }
-    ];
-
-    function callAppsScript(action, params = {}) {
+    function callAppsScriptJSONP(action, params = {}) {
       return new Promise((resolve, reject) => {
-        const callbackName = "cb_" + Math.random().toString(36).substring(7);
-        const script = document.createElement("script");
-        
+        const callbackName = "jarvis_cb_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
         window[callbackName] = function(data) {
           delete window[callbackName];
           if (script.parentNode) script.parentNode.removeChild(script);
-          if (data && data.error) {
-            reject(new Error(data.error));
-          } else {
-            resolve(data);
-          }
+          resolve(data);
         };
 
+        const script = document.createElement("script");
+        const queryParams = new URLSearchParams({
+          action: action,
+          authToken: authToken,
+          callback: callbackName,
+          params: JSON.stringify(params)
+        });
+
+        script.src = `${APPS_SCRIPT_WEBAPP_URL}?${queryParams.toString()}`;
         script.onerror = function() {
           delete window[callbackName];
           if (script.parentNode) script.parentNode.removeChild(script);
-          reject(new Error("Netzwerkfehler zum Apps Script Backend."));
+          reject(new Error("Netzwerkfehler Backend"));
         };
-
-        const encParams = encodeURIComponent(JSON.stringify(params));
-        script.src = `${APPS_SCRIPT_URL}?action=${action}&authToken=${encodeURIComponent(authToken)}&params=${encParams}&callback=${callbackName}`;
         document.body.appendChild(script);
       });
     }
 
-    async function toggleSession() {
-      if (isConnected) {
-        disconnectSession();
-        return;
-      }
+    window.addEventListener("DOMContentLoaded", () => {
       if (!authToken) {
-        document.getElementById("authModal").style.display = "flex";
-        return;
+        document.getElementById("authOverlay").style.display = "flex";
       }
-      await startSession();
+    });
+
+    function saveAuthToken() {
+      const val = document.getElementById("tokenInput").value.trim();
+      if (val) {
+        localStorage.setItem("JARVIS_AUTH_TOKEN", val);
+        localStorage.setItem("JARVIS_WEBAPP_SECRET", val);
+        authToken = val;
+        document.getElementById("authOverlay").style.display = "none";
+        log("✅ Schlüssel gespeichert.");
+      }
     }
 
-    function saveSecret() {
-      const val = document.getElementById("secretInput").value.trim();
-      if (val) {
-        authToken = val;
-        localStorage.setItem("JARVIS_WEBAPP_SECRET", authToken);
-        document.getElementById("authModal").style.display = "none";
-        startSession();
+    orb.addEventListener("click", handleOrbClick);
+
+    async function handleOrbClick() {
+      if (!authToken) {
+        document.getElementById("authOverlay").style.display = "flex";
+        return;
+      }
+      if (isConnected) {
+        stopSession();
+      } else {
+        await startSession();
       }
     }
 
     async function startSession() {
+      orb.classList.add("active");
+      statusText.innerText = "Initialisiere Hardware...";
+      isHandshakeReady = false;
+
       try {
-        log("🔑 Lade Gemini-Gateway Konfiguration...", "info");
-        badge.className = "badge busy";
-        badge.innerText = "Verbinde...";
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+        });
 
-        const config = await callAppsScript("get_config");
-        if (!config || !config.apiKey) {
-          throw new Error("Ungültige Antwort von Apps Script erhalten.");
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
         }
-        geminiApiKey = config.apiKey.trim();
-        log("✅ API-Key autorisiert.", "success");
+        nextPlayTime = audioContext.currentTime;
 
-        await initWebSocket();
+        log("🎙️ Mikrofon aktiv.");
+
+        if (!dynamicApiKey) {
+          statusText.innerText = "Lade Konfiguration...";
+          log("Hole API-Key vom Apps Script Backend...");
+          const res = await callAppsScriptJSONP("get_config");
+
+          if (!res || !res.apiKey) {
+            log("🚨 Konfigurationsfehler: " + (res?.error || "Kein API-Key"));
+            stopSession();
+            return;
+          }
+          dynamicApiKey = res.apiKey.trim();
+          log("🔑 Key geladen.");
+        }
+
+        statusText.innerText = "Verbinde mit Gemini Live...";
+        connectWebSocket();
       } catch (err) {
-        log(`❌ Auth-Fehler: ${err.message}`, "error");
-        badge.className = "badge offline";
-        badge.innerText = "Fehler";
-        if (err.message.includes("403") || err.message.includes("Ungültig")) {
-          localStorage.removeItem("JARVIS_WEBAPP_SECRET");
-          authToken = "";
-          document.getElementById("authModal").style.display = "flex";
-        }
+        log("❌ Fehler: " + err.message);
+        stopSession();
       }
     }
 
-    async function initWebSocket() {
-      const wsUrl = `wss://${LIVE_API_HOST}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${geminiApiKey}`;
-      websocket = new WebSocket(wsUrl);
+    function connectWebSocket() {
+      log(`Öffne Live-WebSocket (${TARGET_MODEL})...`);
+      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${dynamicApiKey}`;
+      ws = new WebSocket(wsUrl);
 
-      websocket.onopen = async () => {
-        log("🔗 WebSocket zu Gemini Live geöffnet.", "success");
-        sendInitialSetup();
-        await startAudioInput();
-        isConnected = true;
-        badge.className = "badge online";
-        badge.innerText = "Bereit";
-        orb.className = "orb listening";
-        orbLabel.innerText = "Hört zu";
-      };
+      ws.onopen = () => {
+        log("✅ WebSocket offen. Sende Setup mit Tools...");
+        statusText.innerText = "Synchronisiere Setup...";
 
-      websocket.onmessage = async (event) => {
-        let msg;
-        if (event.data instanceof Blob) {
-          msg = JSON.parse(await event.data.text());
-        } else {
-          msg = JSON.parse(event.data);
-        }
-        handleServerMessage(msg);
-      };
-
-      websocket.onerror = () => log("❌ WebSocket-Fehler.", "error");
-      websocket.onclose = () => {
-        log("🔌 Sitzung beendet.", "warn");
-        disconnectSession();
-      };
-    }
-
-    function sendInitialSetup() {
-      const setupMsg = {
-        setup: {
-          model: MODEL,
-          generationConfig: {
-            responseModalities: ["AUDIO"],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: "Puck" }
+        const TODAY_ISO = new Date().toISOString().split("T")[0];
+        const setupMessage = {
+          setup: {
+            model: TARGET_MODEL,
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: { voiceName: "Aoede" } // Klare, professionelle deutsche Stimme
+                }
               }
-            }
-          },
-          systemInstruction: {
-            parts: [{ text: SYSTEM_INSTRUCTION }]
-          },
-          tools: [{
-            functionDeclarations: FUNCTION_DECLARATIONS
-          }]
-        }
-      };
-      websocket.send(JSON.stringify(setupMsg));
-    }
-
-    async function handleServerMessage(msg) {
-      if (msg.error) {
-        log(`🚨 Gemini: ${msg.error.message || JSON.stringify(msg.error)}`, "error");
-        return;
-      }
-
-      if (msg.serverContent && msg.serverContent.modelTurn) {
-        orb.className = "orb speaking";
-        orbLabel.innerText = "Spricht";
-        const parts = msg.serverContent.modelTurn.parts || [];
-        for (const part of parts) {
-          if (part.inlineData && part.inlineData.mimeType?.startsWith("audio/pcm")) {
-            playAudioChunk(part.inlineData.data);
-          }
-        }
-      }
-
-      if (msg.serverContent && msg.serverContent.turnComplete) {
-        if (!isPlayingAudio) {
-          orb.className = "orb listening";
-          orbLabel.innerText = "Hört zu";
-        }
-      }
-
-      if (msg.toolCall) {
-        orb.className = "orb tool";
-        orbLabel.innerText = "Arbeitet";
-        badge.className = "badge busy";
-        badge.innerText = "Tool aktiv";
-
-        const functionCalls = msg.toolCall.functionCalls || [];
-        const functionResponses = [];
-
-        for (const call of functionCalls) {
-          log(`⚡ Führe Tool aus: ${call.name}`, "info");
-          try {
-            const rawData = await callAppsScript(call.name, call.args || {});
-            log(`📥 Daten empfangen (${call.name})`, "success");
-            
-            functionResponses.push({
-              name: call.name,
-              id: call.id,
-              response: { output: rawData }
-            });
-          } catch (err) {
-            log(`❌ Fehler bei ${call.name}: ${err.message}`, "error");
-            functionResponses.push({
-              name: call.name,
-              id: call.id,
-              response: { error: err.message }
-            });
-          }
-        }
-
-        const toolResponsePayload = {
-          toolResponse: {
-            functionResponses: functionResponses
+            },
+            systemInstruction: {
+              parts: [{ 
+                text: `Du bist JARVIS, der hochentwickelte persönliche KI-Assistent von Hendrik Harm.
+HEUTIGES DATUM: ${TODAY_ISO}.
+Du hast vollen Lese- und Schreibzugriff auf Google Mail, Google Drive, Google Kalender und Tabellen.
+WICHTIGE ANWEISUNGEN:
+1. Wenn Hendrik eine E-Mail erstellen oder vorbereiten möchte, rufe IMMER SOFORT das Tool 'create_draft_with_attachment' auf. Sage niemals, dass du keine Mails erstellen kannst!
+2. Wenn Hendrik nach Dokumenten sucht, nutze 'search_documents'.
+3. Wenn Hendrik nach Terminen oder Fristen fragt, nutze 'get_upcoming_deadlines'.
+4. Wenn Hendrik nach Mails fragt, nutze 'get_recent_emails'.
+5. Antworte immer auf Deutsch per Sprache, freundlich, präzise und direkt.` 
+              }]
+            },
+            tools: [{
+              functionDeclarations: [
+                {
+                  name: "create_draft_with_attachment",
+                  description: "Erstellt einen echten E-Mail-Entwurf im Gmail-Postfach von Hendrik Harm mit optionalem Drive-Anhang.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      recipient: { type: "STRING", description: "E-Mail-Adresse des Empfängers" },
+                      subject: { type: "STRING", description: "Betreffzeile der E-Mail" },
+                      body: { type: "STRING", description: "Inhalt/Text der E-Mail" },
+                      fileId: { type: "STRING", description: "ID der zuvor gefundenen Drive-Datei für den Anhang" },
+                      fileName: { type: "STRING", description: "Dateiname der anzuhängenden Datei" }
+                    },
+                    required: ["subject", "body"]
+                  }
+                },
+                {
+                  name: "get_recent_emails",
+                  description: "Ruft ungelesene E-Mails aus dem Gmail-Posteingang von Hendrik Harm ab.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      limit: { type: "NUMBER", description: "Anzahl der abzurufenden E-Mails (Standard: 5)" }
+                    }
+                  }
+                },
+                {
+                  name: "search_documents",
+                  description: "Durchsucht die Google Drive Ablage und den Index nach Dokumenten, Verträgen, Rechnungen oder Belegen.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      query: { type: "STRING", description: "Der Suchbegriff" }
+                    },
+                    required: ["query"]
+                  }
+                },
+                {
+                  name: "get_upcoming_deadlines",
+                  description: "Ruft anstehende Kalendertermine und Fristen ab.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      days: { type: "NUMBER", description: "Anzahl Tage im Voraus (Standard: 7)" }
+                    }
+                  }
+                },
+                {
+                  name: "get_tax_summary",
+                  description: "Ruft die erfassten Steuerdaten und Handwerkerlohn-Summen (§35a EStG) für 2026 ab.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      category: { type: "STRING", description: "Optionale Kategorie" }
+                    }
+                  }
+                },
+                {
+                  name: "get_entity_relation",
+                  description: "Ruft Beziehungen, Verträge oder Stammdaten aus dem Knowledge Graph ab.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      entityName: { type: "STRING", description: "Name der Entität" }
+                    },
+                    required: ["entityName"]
+                  }
+                }
+              ]
+            }]
           }
         };
 
-        websocket.send(JSON.stringify(toolResponsePayload));
-        badge.className = "badge online";
-        badge.innerText = "Bereit";
-      }
+        ws.send(JSON.stringify(setupMessage));
+      };
+
+      ws.onmessage = async (event) => {
+        try {
+          let textData = event.data;
+          if (event.data instanceof Blob) {
+            textData = await event.data.text();
+          }
+          const res = JSON.parse(textData);
+
+          if (res.error) {
+            log(`🚨 Google-Fehler: ${res.error.message || JSON.stringify(res.error)}`);
+            return;
+          }
+
+          if (res.setupComplete) {
+            log("🎯 JARVIS bereit & mit Google Workspace gekoppelt!");
+            statusText.innerText = "JARVIS hört zu...";
+            isConnected = true;
+            isHandshakeReady = true;
+            startAudioStreaming();
+            return;
+          }
+
+          // Tool-Aufruf von Gemini abfangen
+          if (res.toolCall) {
+            const calls = res.toolCall.functionCalls || [];
+            const responses = [];
+            for (let c of calls) {
+              log(`⚡ Tool aktiv: <b>${c.name}</b>`);
+              try {
+                const out = await callAppsScriptJSONP(c.name, c.args || {});
+                log(`📥 Daten geladen für ${c.name}`);
+                responses.push({ name: c.name, id: c.id, response: { output: out } });
+              } catch (err) {
+                log(`❌ Tool-Fehler: ${err.message}`);
+                responses.push({ name: c.name, id: c.id, response: { error: err.message } });
+              }
+            }
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
+            }
+          }
+
+          // Audio-Ausgabe (Streaming PCM)
+          if (res.serverContent?.modelTurn?.parts) {
+            for (let p of res.serverContent.modelTurn.parts) {
+              if (p.inlineData && p.inlineData.mimeType?.startsWith("audio/pcm")) {
+                playPcmChunkSmooth(p.inlineData.data);
+              }
+            }
+          }
+        } catch (e) {
+          log("⚠️ Nachricht: " + e.message);
+        }
+      };
+
+      ws.onerror = (e) => log("❌ WebSocket Verbindungsfehler");
+      ws.onclose = (e) => {
+        log(`Sitzung beendet (${e.code}).`);
+        stopSession();
+      };
     }
 
-    async function startAudioInput() {
-      inputAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-      if (inputAudioContext.state === 'suspended') await inputAudioContext.resume();
+    function startAudioStreaming() {
+      inputContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      if (inputContext.state === 'suspended') inputContext.resume();
 
-      mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true, noiseSuppression: true } 
-      });
-      const source = inputAudioContext.createMediaStreamSource(mediaStream);
+      const source = inputContext.createMediaStreamSource(mediaStream);
+      scriptProcessor = inputContext.createScriptProcessor(4096, 1, 1);
 
-      processorNode = inputAudioContext.createScriptProcessor(4096, 1, 1);
-      processorNode.onaudioprocess = (e) => {
-        if (!isConnected || !websocket || websocket.readyState !== WebSocket.OPEN) return;
-
-        const inputData = e.inputBuffer.getChannelData(0);
-        const pcm16 = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-          let s = Math.max(-1, Math.min(1, inputData[i]));
-          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      scriptProcessor.onaudioprocess = (e) => {
+        if (!isConnected || !isHandshakeReady || !ws || ws.readyState !== WebSocket.OPEN) return;
+        const input = e.inputBuffer.getChannelData(0);
+        const pcm16 = new Int16Array(input.length);
+        for (let i = 0; i < input.length; i++) {
+          pcm16[i] = Math.max(-1, Math.min(1, input[i])) * 0x7FFF;
         }
-
-        const base64Audio = btoa(String.fromCharCode.apply(null, new Uint8Array(pcm16.buffer)));
-        websocket.send(JSON.stringify({
-          realtimeInput: {
-            mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: base64Audio }]
-          }
+        const base64Audio = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
+        ws.send(JSON.stringify({
+          realtimeInput: { mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: base64Audio }] }
         }));
       };
 
-      source.connect(processorNode);
-      processorNode.connect(inputAudioContext.destination);
+      source.connect(scriptProcessor);
+      scriptProcessor.connect(inputContext.destination);
+      log("🎙️ Live Audio Stream aktiv.");
     }
 
-    function initOutputAudio() {
-      if (!outputAudioContext) {
-        outputAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
-      }
-      if (outputAudioContext.state === 'suspended') outputAudioContext.resume();
-    }
+    // Präzises, knackfreies Audio-Stitching mit Web Audio API
+    function playPcmChunkSmooth(base64Data) {
+      if (!audioContext) return;
+      if (audioContext.state === 'suspended') audioContext.resume();
 
-    function playAudioChunk(base64Data) {
-      initOutputAudio();
       const binaryString = atob(base64Data);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      const int16Array = new Int16Array(bytes.buffer);
-      const float32Array = new Float32Array(int16Array.length);
+      const pcm16 = new Int16Array(bytes.buffer);
+      const audioBuffer = audioContext.createBuffer(1, pcm16.length, 24000);
+      const channelData = audioBuffer.getChannelData(0);
 
-      for (let i = 0; i < int16Array.length; i++) {
-        float32Array[i] = int16Array[i] / 32768.0;
+      for (let i = 0; i < pcm16.length; i++) {
+        channelData[i] = pcm16[i] / 32768.0;
       }
 
-      const audioBuffer = outputAudioContext.createBuffer(1, float32Array.length, 24000);
-      audioBuffer.getChannelData(0).set(float32Array);
+      const sourceNode = audioContext.createBufferSource();
+      sourceNode.buffer = audioBuffer;
+      sourceNode.connect(audioContext.destination);
 
-      audioOutputQueue.push(audioBuffer);
-      if (!isPlayingAudio) playNextInQueue();
-    }
-
-    function playNextInQueue() {
-      if (audioOutputQueue.length === 0) {
-        isPlayingAudio = false;
-        orb.className = "orb listening";
-        orbLabel.innerText = "Hört zu";
-        return;
+      const currentTime = audioContext.currentTime;
+      if (nextPlayTime < currentTime) {
+        nextPlayTime = currentTime + 0.02; // Minimaler 20ms Sicherheits-Buffer gegen Jitter
       }
-
-      isPlayingAudio = true;
-      const buffer = audioOutputQueue.shift();
-      const source = outputAudioContext.createBufferSource();
-      source.buffer = buffer;
-      source.connect(outputAudioContext.destination);
-      source.onended = () => playNextInQueue();
-      source.start();
+      sourceNode.start(nextPlayTime);
+      nextPlayTime += audioBuffer.duration;
     }
 
-    function disconnectSession() {
+    function stopSession() {
       isConnected = false;
-      if (websocket) { try { websocket.close(); } catch(e){} websocket = null; }
+      isHandshakeReady = false;
+      if (ws) { try { ws.close(); } catch(e){} ws = null; }
       if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
-      if (processorNode) { try { processorNode.disconnect(); } catch(e){} processorNode = null; }
-      if (inputAudioContext && inputAudioContext.state !== 'closed') { try { inputAudioContext.close(); } catch(e){} inputAudioContext = null; }
-      if (outputAudioContext && outputAudioContext.state !== 'closed') { try { outputAudioContext.close(); } catch(e){} outputAudioContext = null; }
-      audioOutputQueue = [];
-      isPlayingAudio = false;
-
-      orb.className = "orb";
-      orbLabel.innerText = "Start";
-      badge.className = "badge offline";
-      badge.innerText = "Getrennt";
-      log("🔴 Sitzung beendet.", "info");
+      if (scriptProcessor) { try { scriptProcessor.disconnect(); } catch(e){} scriptProcessor = null; }
+      if (inputContext && inputContext.state !== 'closed') { try { inputContext.close(); } catch(e){} inputContext = null; }
+      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} audioContext = null; }
+      nextPlayTime = 0;
+      orb.classList.remove("active");
+      statusText.innerText = "Tippe auf den Orb, um zu sprechen";
     }
   </script>
 </body>
