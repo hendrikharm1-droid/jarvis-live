@@ -2,57 +2,91 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JARVIS API Diagnose</title>
   <style>
-    body { background: #0a0a0a; color: #00ff00; font-family: monospace; padding: 20px; font-size: 14px; }
-    button { padding: 15px; background: #333; color: white; border: 1px solid #555; cursor: pointer; width: 100%; }
-    #output { margin-top: 20px; white-space: pre-wrap; }
-    .good { color: #00ff00; }
-    .bad { color: #ff3333; }
+    body { background: #090d16; color: #f8fafc; font-family: monospace; padding: 20px; font-size: 13px; }
+    h2 { color: #38bdf8; }
+    input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #334155; font-size: 14px; box-sizing: border-box; }
+    input { background: #1e293b; color: white; }
+    button { background: #38bdf8; color: #090d16; font-weight: bold; cursor: pointer; border: none; }
+    #output { margin-top: 15px; padding: 12px; background: #020617; border: 1px solid #1e293b; border-radius: 8px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; }
+    .live { color: #4ade80; font-weight: bold; }
+    .rest { color: #94a3b8; }
+    .err { color: #f87171; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>JARVIS Diagnose-Tool</h1>
-  <button onclick="runDiagnosis()">API & Modell Analyse starten</button>
-  <div id="output">Warte auf Eingabe...</div>
+  <h2>🔍 JARVIS API & Model Inspector</h2>
+  <p style="color: #94a3b8; font-size: 11px;">Ermittelt alle für deinen Key freigeschalteten Live- & Standardmodelle.</p>
+  
+  <input type="password" id="passInput" placeholder="Sicherheitsschlüssel (Token)">
+  <button onclick="runCheck()">Analyse starten</button>
+
+  <div id="output">Bereit für Scan...</div>
 
   <script>
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
 
-    function log(msg, type = '') {
-      document.getElementById('output').innerHTML += `<div class="${type}">${msg}</div>`;
+    function log(msg, cls = "") {
+      const out = document.getElementById("output");
+      out.innerHTML += `<div class="${cls}">• ${msg}</div>`;
+      out.scrollTop = out.scrollHeight;
     }
 
-    async function runDiagnosis() {
-      document.getElementById('output').innerHTML = "Starte Analyse...";
-      const token = localStorage.getItem("JARVIS_AUTH_TOKEN");
-      if(!token) { log("❌ Kein Auth-Token gefunden!", "bad"); return; }
-
-      // 1. Key holen
-      log("1. Hole API Key...");
-      const res = await fetch(`${APPS_SCRIPT_URL}?action=get_config&authToken=${token}`);
-      const data = await res.json();
-      if(!data.apiKey) { log("❌ Backend lieferte keinen Key: " + JSON.stringify(data), "bad"); return; }
-      log("✅ Key erhalten: " + data.apiKey.substring(0,6) + "...");
-
-      // 2. Modelle auflisten
-      log("2. Frage Google Modell-Liste ab...");
-      const mRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${data.apiKey}`);
-      const mData = await mRes.json();
-      
-      if(mData.error) { log("❌ Google Fehler: " + mData.error.message, "bad"); return; }
-
-      log(`✅ Gefundene Modelle: ${mData.models.length}`);
-      
-      mData.models.forEach(m => {
-        const supportsLive = m.supportedMethods.includes("BidiGenerateContent");
-        const style = supportsLive ? "good" : "";
-        const badge = supportsLive ? "[LIVE-READY!]" : "[Nur Text/Bild]";
-        log(`${m.name} ${badge}`, style);
+    function callJSONP(token) {
+      return new Promise((resolve, reject) => {
+        const cb = "diag_cb_" + Date.now();
+        window[cb] = (d) => { delete window[cb]; script.remove(); resolve(d); };
+        const script = document.createElement("script");
+        script.src = `${APPS_SCRIPT_URL}?action=get_config&authToken=${encodeURIComponent(token)}&callback=${cb}`;
+        script.onerror = () => { delete window[cb]; script.remove(); reject(new Error("Apps Script Verbindungsfehler")); };
+        document.body.appendChild(script);
       });
-      
-      log("\n--- ANALYSE ENDE ---", "good");
-      log("Schau in die Liste oben. Wenn ein Modell [LIVE-READY!] hat, nimm genau diesen Namen für das Setup-Feld!");
+    }
+
+    async function runCheck() {
+      const token = document.getElementById("passInput").value.trim() || localStorage.getItem("JARVIS_AUTH_TOKEN");
+      if (!token) { log("Bitte Sicherheitsschlüssel eingeben!", "err"); return; }
+      localStorage.setItem("JARVIS_AUTH_TOKEN", token);
+
+      document.getElementById("output").innerHTML = "";
+      log("1. Frage API-Key aus Apps Script ab...");
+
+      try {
+        const conf = await callJSONP(token);
+        if (!conf || !conf.apiKey) {
+          log("🚨 Fehler vom Backend: " + JSON.stringify(conf), "err");
+          return;
+        }
+        const key = conf.apiKey.trim();
+        log(`✅ Key erhalten (${key.substring(0, 7)}...${key.slice(-4)})`, "live");
+
+        log("2. Frage Google AI nach allen aktiven Modellen ab...");
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          log(`🚨 Google HTTP ${res.status}: ${errBody.error?.message || "Fehler"}`, "err");
+          return;
+        }
+
+        const data = await res.json();
+        const models = data.models || [];
+        log(`✅ ${models.length} Modelle für diesen Key gefunden:\n`, "live");
+
+        models.forEach(m => {
+          const methods = m.supportedGenerationMethods || m.supportedMethods || [];
+          const isBidi = methods.some(met => met.toLowerCase().includes("bidi"));
+          if (isBidi) {
+            log(`🌟 ${m.name} -> [LIVE BIDI UNTERSTÜTZT]`, "live");
+          } else {
+            log(`${m.name} -> (Nur Standard HTTP)`, "rest");
+          }
+        });
+
+      } catch (e) {
+        log("❌ Fehler: " + e.message, "err");
+      }
     }
   </script>
 </body>
