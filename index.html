@@ -128,7 +128,7 @@
  <button class="action-btn" onclick="triggerStagingSort()">⚡ Staging-Ablage in Endverzeichnis einsortieren</button>
  </div>
 
-<!-- Dokumenten-Suchfeld für textbasierte RAG-Abfragen -->
+ <!-- Dokumenten-Suchfeld für textbasierte RAG-Abfragen -->
  <div class="search-box-wrapper">
  <input type="text" id="ragQueryInput" placeholder="Frage an Dokumente (z.B. Strom, Klarmobil)..." onkeydown="if(event.key==='Enter') executeTextRagQuery()">
  <button onclick="executeTextRagQuery()">Suchen</button>
@@ -219,7 +219,6 @@
  }
  }
 
- // Manueller Staging-Trigger per Button
  async function triggerStagingSort() {
  log("⚡ Manueller Staging-Sortierlauf angefordert...");
  try {
@@ -230,7 +229,6 @@
  }
  }
 
- // Textbasierte RAG-Abfrage über das Suchfeld
  async function executeTextRagQuery() {
  const input = document.getElementById("ragQueryInput");
  const q = input.value.trim();
@@ -304,7 +302,7 @@
  responseModalities: ["AUDIO"],
  speechConfig: {
  voiceConfig: {
- prebuiltVoiceConfig: { voiceName: "Aoede" }
+ prebuiltVoiceConfig: { voiceName: "Puck" }
  }
  }
  },
@@ -312,7 +310,7 @@
  parts: [{ 
  text: `Du bist JARVIS, der hochentwickelte, etwas trocken-humorvolle und absolut loyale persönliche KI-Assistent von Hendrik Harm. 
 HEUTIGES DATUM: ${TODAY_ISO}.
-Du sprichst fließend Deutsch mit einem professionellen Butler-Ton.
+Du sprichst fließend Deutsch mit einem professionellen, souveränen Ton (Butler-Stil).
 Du hast vollen Zugriff auf das lokale Vektor-Gedächtnis (Semantische RAG-Suche) sowie Google Mail, Google Drive und Kalender.
 WICHTIGE ANWEISUNGEN:
 1. Wenn Hendrik Fragen zu seinen Dokumenten, Rechnungen, Verträgen oder Inhalten stellt, nutze IMMER SOFORT das Tool 'query_vector_memory'.
@@ -495,17 +493,3 @@ WICHTIGE ANWEISUNGEN:
  </script>
 </body>
 </html>
-Was müssen wir im Apps Script Backend dafür noch kurz anbinden?
-Damit der Button und das Text-Suchfeld im Frontend reibungslos funktionieren, müssen im Apps-Script-Router (doGet(e)) zwei kleine Actions abgefangen werden:
-
-JavaScript
-// Ergänze im Backend-Router (doGet):
-if (action === 'query_vector_memory') {
-  result = { output: queryJarvisVectorMemory(params.userQuery) };
-} else if (action === 'run_staging_sort') {
-  // Hier rufen wir deine Staging-Prozessfunktion auf
-  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-  const knownPaths = getKnownFolderPaths(ss);
-  squad5_ProcessStagingWithCriticAuditor(ss, knownPaths);
-  result = { output: "Staging-Sortierung und Kritiker-Audit erfolgreich durchgeführt." };
-}
