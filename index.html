@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS</title>
+  <title>JARVIS Live OS v9.9.27</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -79,7 +79,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Mobile Native Voice Hub</p>
+    <p>Mobile Native Voice Hub v9.9.27</p>
   </div>
 
   <div class="orb-container">
@@ -89,9 +89,10 @@
   </div>
 
   <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
-  <div class="log-box" id="logBox">[JARVIS Bereit]</div>
+  <div class="log-box" id="logBox">[JARVIS Bereit - v9.9.27]</div>
 
   <script>
+    // URL deiner aktuellen Google Apps Script Web-App (Deployment URL)
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
     const TARGET_MODEL = "models/gemini-2.5-flash-native-audio-latest";
 
@@ -232,20 +233,30 @@
             },
             systemInstruction: {
               parts: [{ 
-                text: `Du bist JARVIS, der hochentwickelte persönliche KI-Assistent von Hendrik Harm.
+                text: `Du bist JARVIS, der hochentwickelte persönliche KI-Assistent von Hendrik Harm (Version 9.9.27).
 HEUTIGES DATUM: ${TODAY_ISO}.
-Du hast vollen Lese- und Schreibzugriff auf Google Mail, Google Drive, Google Kalender und Tabellen.
+Du hast vollen Zugriff auf das Vektor-Gedächtnis (RAG), Google Mail, Google Drive, Google Kalender, Google Tasks und Steuern.
 WICHTIGE ANWEISUNGEN:
-1. Wenn Hendrik eine E-Mail erstellen oder vorbereiten möchte, rufe IMMER SOFORT das Tool 'create_draft_with_attachment' auf.
-Sage niemals, dass du keine Mails erstellen kannst!
-2. Wenn Hendrik nach Dokumenten sucht, nutze 'search_documents'.
-3. Wenn Hendrik nach Terminen oder Fristen fragt, nutze 'get_upcoming_deadlines'.
-4. Wenn Hendrik nach Mails fragt, nutze 'get_recent_emails'.
+1. Wenn Hendrik nach Dokumenten sucht oder Fragen zum Archiv hat, rufe IMMER SOFORT das Tool 'query_vector_memory' oder 'search_documents' auf.
+2. Wenn Hendrik eine E-Mail erstellen oder vorbereiten möchte, nutze 'create_draft_with_attachment'.
+3. Wenn nach Terminen oder Fristen gefragt wird, nutze 'get_upcoming_deadlines'.
+4. Wenn nach offenen Aufgaben gefragt wird, nutze 'get_open_tasks' bzw. 'create_task'.
 5. Antworte immer auf Deutsch per Sprache, freundlich, präzise und direkt.` 
               }]
             },
             tools: [{
               functionDeclarations: [
+                {
+                  name: "query_vector_memory",
+                  description: "Durchsucht das semantische Vektor-Gedächtnis (RAG) nach Dokumenten, Inhalten und Verträgen im Enterprise DMS.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      userQuery: { type: "STRING", description: "Die Frage oder der Suchbegriff des Nutzers" }
+                    },
+                    required: ["userQuery"]
+                  }
+                },
                 {
                   name: "create_draft_with_attachment",
                   description: "Erstellt einen echten E-Mail-Entwurf im Gmail-Postfach von Hendrik Harm mit optionalem Drive-Anhang.",
@@ -303,14 +314,24 @@ Sage niemals, dass du keine Mails erstellen kannst!
                   }
                 },
                 {
-                  name: "get_entity_relation",
-                  description: "Ruft Beziehungen, Verträge oder Stammdaten aus dem Knowledge Graph ab.",
+                  name: "get_open_tasks",
+                  description: "Ruft alle offenen To-Do-Aufgaben aus der JARVIS Google Tasks Liste ab.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {}
+                  }
+                },
+                {
+                  name: "create_task",
+                  description: "Erstellt eine neue Aufgabe in der JARVIS Google Tasks Liste.",
                   parameters: {
                     type: "OBJECT",
                     properties: {
-                      entityName: { type: "STRING", description: "Name der Entität" }
+                      title: { type: "STRING", description: "Titel der Aufgabe" },
+                      notes: { type: "STRING", description: "Zusätzliche Notizen oder Kontext" },
+                      dueDaysOffset: { type: "NUMBER", description: "Fällig in X Tagen (Standard: 1)" }
                     },
-                    required: ["entityName"]
+                    required: ["title"]
                   }
                 }
               ]
@@ -333,7 +354,7 @@ Sage niemals, dass du keine Mails erstellen kannst!
           }
 
           if (res.setupComplete) {
-            log("🎯 JARVIS bereit & mit Google Workspace gekoppelt!");
+            log("🎯 JARVIS 9.9.27 bereit & mit Google Workspace gekoppelt!");
             statusText.innerText = "JARVIS hört zu...";
             isConnected = true;
             isHandshakeReady = true;
