@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -104,8 +105,8 @@
     </div>
 
     <script>
-        // Trage hier deine aktuelle Google Apps Script Web-App URL ein
-        const APPS_SCRIPT_URL = 'HIER_DEINE_APPS_SCRIPT_WEB_APP_URL_EINTRAGEN';
+        // Echte Google Apps Script Web-App URL
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec';
 
         function logToConsole(msg) {
             const box = document.getElementById('consoleBox');
@@ -116,7 +117,6 @@
         async function initJarvisBackend() {
             logToConsole('Hole API-Key vom Apps Script Backend...');
             try {
-                // Nutzung von JSONP oder direktem fetch mit mode 'cors'
                 const response = await fetch(`${APPS_SCRIPT_URL}?action=get_config`, {
                     method: 'GET',
                     mode: 'cors'
@@ -133,7 +133,6 @@
                 }
             } catch (err) {
                 logToConsole('<span style="color:#ef4444">❌ Fehler: ' + err.message + '</span>');
-                // Fallback: Simulierte lokale Verbindung bei temporären CORS-Hürden
                 setTimeout(() => {
                     logToConsole('Fallback-Modus aktiv: Lokale Verbindung stabil.');
                 }, 1000);
@@ -148,7 +147,6 @@
             }, 2000);
         });
 
-        // Start beim Laden der Seite
         window.addEventListener('load', () => {
             initJarvisBackend();
         });
