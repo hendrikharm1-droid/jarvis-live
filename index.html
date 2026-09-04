@@ -115,7 +115,6 @@
     </div>
 
     <script>
-        // Deine echte, feste Apps Script Web-App URL
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec';
 
         function logToConsole(msg) {
@@ -124,7 +123,6 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        // Sprachausgabe (Text-to-Speech) über den Browser
         function speakJarvisResponse(text) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
@@ -142,7 +140,6 @@
             }
         }
 
-        // Zuverlässiger JSONP-Aufruf zur Umgehung von Google CORS-Sperren
         function callJarvisJSONP(action, paramsObj, callbackName) {
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
@@ -202,7 +199,6 @@
             }
         }
 
-        // Spracherkennung (Speech-to-Text) beim Klick auf den Orb
         const orbBtn = document.getElementById('orbBtn');
         orbBtn.addEventListener('click', () => {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -242,7 +238,6 @@
             recognition.start();
         });
 
-        // Start beim Laden der Seite
         window.addEventListener('load', () => {
             initJarvisBackend();
         });
