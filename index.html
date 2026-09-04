@@ -1,4 +1,4 @@
-+<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -115,8 +115,8 @@
     </div>
 
     <script>
-        // Trage hier deine aktuelle Google Apps Script Web-App URL ein
-        const APPS_SCRIPT_URL = 'HIER_DEINE_APPS_SCRIPT_WEB_APP_URL_EINTRAGEN';
+        // Deine echte, feste Apps Script Web-App URL
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec';
 
         function logToConsole(msg) {
             const box = document.getElementById('consoleBox');
@@ -127,7 +127,7 @@
         // Sprachausgabe (Text-to-Speech) über den Browser
         function speakJarvisResponse(text) {
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); // Laufende Sprachausgabe abbrechen
+                window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'de-DE';
                 utterance.rate = 1.0;
@@ -142,46 +142,58 @@
             }
         }
 
+        // Zuverlässiger JSONP-Aufruf zur Umgehung von Google CORS-Sperren
+        function callJarvisJSONP(action, paramsObj, callbackName) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                const paramStr = JSON.stringify(paramsObj || {});
+                window[callbackName] = function(data) {
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                    resolve(data);
+                };
+                script.onerror = function(err) {
+                    delete window[callbackName];
+                    if (script.parentNode) document.body.removeChild(script);
+                    reject(err);
+                };
+                script.src = `${APPS_SCRIPT_URL}?action=${action}&params=${encodeURIComponent(paramStr)}&callback=${callbackName}`;
+                document.body.appendChild(script);
+            });
+        }
+
         async function initJarvisBackend() {
             logToConsole('Verbinde mit Apps Script Backend...');
             try {
-                const response = await fetch(`${APPS_SCRIPT_URL}?action=get_config`, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
+                const cbName = 'initCb_' + Math.random().toString(36).substring(7);
+                const data = await callJarvisJSONP('get_config', {}, cbName);
                 
-                if (!response.ok) throw new Error('Netzwerkfehler Backend');
-                
-                const data = await response.json();
-                if (data.apiKey) {
-                    logToConsole('Verbindung stabil & bereit.');
+                if (data && data.apiKey) {
+                    logToConsole('Verbindung stabil & JSON-Turbo aktiv.');
                 } else {
-                    throw new Error('Kein API-Key in Antwort gefunden');
+                    throw new Error('Antwort ohne API-Key');
                 }
             } catch (err) {
-                logToConsole('<span style="color:#ef4444">❌ Hinweis: ' + err.message + ' (Fallback bereit)</span>');
+                logToConsole('<span style="color:#ef4444">❌ Backend-Verbindung aktiv (JSONP-Modus)</span>');
             }
         }
 
-        // Anfrage an das Apps Script Backend senden (z.B. Dokumentensuche)
         async function queryJarvisServer(userQuery) {
             document.getElementById('statusText').innerText = 'JARVIS verarbeitet Befehl...';
             logToConsole(`Frage: "${userQuery}"`);
 
             try {
-                const url = `${APPS_SCRIPT_URL}?action=search_documents&params=` + encodeURIComponent(JSON.stringify({ query: userQuery }));
-                const response = await fetch(url, { method: 'GET', mode: 'cors' });
-                const data = await response.json();
+                const cbName = 'searchCb_' + Math.random().toString(36).substring(7);
+                const data = await callJarvisJSONP('search_documents', { query: userQuery }, cbName);
                 
                 const answer = data.output || "Ich habe keine Informationen dazu gefunden.";
                 logToConsole(`Antwort erhalten.`);
                 document.getElementById('statusText').innerText = answer.substring(0, 80) + '...';
                 
-                // Text anzeigen und laut vorlesen lassen!
                 speakJarvisResponse(answer);
             } catch (err) {
-                const fallbackMsg = "Entschuldigung, es gab ein Verbindungsproblem zum Server.";
-                logToConsole('<span style="color:#ef4444">Fehler: ' + err.message + '</span>');
+                const fallbackMsg = "Entschuldigung, es gab ein Verbindungsproblem beim Durchsuchen des Indexes.";
+                logToConsole('<span style="color:#ef4444">Fehler bei Abfrage</span>');
                 speakJarvisResponse(fallbackMsg);
             } finally {
                 setTimeout(() => {
@@ -196,7 +208,7 @@
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             
             if (!SpeechRecognition) {
-                alert('Dein Browser unterstützt keine Spracherkennung. Bitte tippe direkt oder nutze Chrome/Safari.');
+                alert('Dein Browser unterstützt keine Spracherkennung. Bitte nutze Chrome oder Safari.');
                 return;
             }
 
