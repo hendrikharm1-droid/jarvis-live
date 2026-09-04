@@ -123,17 +123,40 @@
             box.scrollTop = box.scrollHeight;
         }
 
+        // Bereinigt den Text vor der Sprachausgabe von URLs, Dateiendungen und technischen Symbolen
+        function cleanTextForSpeech(rawText) {
+            if (!rawText) return "Keine Information verfügbar.";
+            return rawText
+                .replace(/https?:\/\/[^\s]+/g, '') // Entfernt jegliche http/https Links
+                .replace(/Direkt-Link:?/gi, '') // Entfernt das Wort Direkt-Link
+                .replace(/\[Treffer \d+\]/gi, 'Treffer:') // Macht Treffer sprechbarer
+                .replace(/\.pdf/gi, '') // Entfernt .pdf Endungen
+                .replace(/[_]/g, ' ') // Ersetzt Unterstriche durch Leerzeichen
+                .replace(/([0-9]+)\s*EUR/gi, '$1 Euro') // Wandelt "EUR" in "Euro" um
+                .substring(0, 250); // Kürzt den Text für flüssiges Vorlesen
+        }
+
+        // Natürliche Sprachausgabe (Text-to-Speech)
         function speakJarvisResponse(text) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'de-DE';
-                utterance.rate = 1.0;
                 
+                const speechText = cleanTextForSpeech(text);
+                const utterance = new SpeechSynthesisUtterance(speechText);
+                
+                utterance.lang = 'de-DE';
+                utterance.rate = 1.0; // Normale Sprechgeschwindigkeit
+                utterance.pitch = 1.0;
+
+                // Versuche, eine hochwertige deutsche Stimme (Google, Natural, Microsoft) zu finden
                 const voices = window.speechSynthesis.getVoices();
-                const germanVoice = voices.find(v => v.lang.includes('de') || v.lang.includes('DE'));
-                if (germanVoice) {
-                    utterance.voice = germanVoice;
+                const naturalGermanVoice = voices.find(v => (v.lang.includes('de') || v.lang.includes('DE')) && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Microsoft') || v.name.includes('Hedda')));
+                
+                if (naturalGermanVoice) {
+                    utterance.voice = naturalGermanVoice;
+                } else {
+                    const fallbackGerman = voices.find(v => v.lang.includes('de') || v.lang.includes('DE'));
+                    if (fallbackGerman) utterance.voice = fallbackGerman;
                 }
 
                 window.speechSynthesis.speak(utterance);
