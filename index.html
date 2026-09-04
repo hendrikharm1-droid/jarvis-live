@@ -1,5 +1,4 @@
-
-<!DOCTYPE html>
++<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -56,6 +55,15 @@
         .orb:active {
             transform: scale(0.95);
         }
+        .orb.listening {
+            box-shadow: 0 0 60px rgba(239, 68, 68, 0.8);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
         .orb svg {
             width: 50px;
             height: 50px;
@@ -65,6 +73,8 @@
             margin-top: 20px;
             color: #8d99ae;
             font-size: 14px;
+            text-align: center;
+            padding: 0 20px;
         }
         .console-box {
             width: 90%;
@@ -96,16 +106,17 @@
                 <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
             </svg>
         </div>
-        <div class="status-text" id="statusText">JARVIS hört zu...</div>
+        <div class="status-text" id="statusText">Tippe auf den Orb, um mit Jarvis zu sprechen...</div>
     </div>
 
     <div class="console-box" id="consoleBox">
         [JARVIS Bereit - v9.9.36]<br>
-        • Mikrofon aktiv...
+        • Sprachmodul & Turbo-Index aktiv...
     </div>
 
     <script>
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec';
+        // Trage hier deine aktuelle Google Apps Script Web-App URL ein
+        const APPS_SCRIPT_URL = 'HIER_DEINE_APPS_SCRIPT_WEB_APP_URL_EINTRAGEN';
 
         function logToConsole(msg) {
             const box = document.getElementById('consoleBox');
@@ -113,29 +124,113 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        async function initJarvisBackend() {
-            logToConsole('Hole API-Key vom Apps Script Backend...');
-            try {
-                const response = await fetch(`${APPS_SCRIPT_URL}?action=get_config`, {
-                    method: 'GET',
-                    mode: 'no-cors'
-                });
+        // Sprachausgabe (Text-to-Speech) über den Browser
+        function speakJarvisResponse(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Laufende Sprachausgabe abbrechen
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'de-DE';
+                utterance.rate = 1.0;
                 
-                logToConsole('Key geladen.');
-                logToConsole('JARVIS 9.9.36 bereit & mit Google Workspace');
-            } catch (err) {
-                logToConsole('<span style="color:#22c55e">✓ JARVIS 9.9.36 bereit im Workspace-Modus</span>');
+                const voices = window.speechSynthesis.getVoices();
+                const germanVoice = voices.find(v => v.lang.includes('de') || v.lang.includes('DE'));
+                if (germanVoice) {
+                    utterance.voice = germanVoice;
+                }
+
+                window.speechSynthesis.speak(utterance);
             }
         }
 
-        document.getElementById('orbBtn').addEventListener('click', () => {
+        async function initJarvisBackend() {
+            logToConsole('Verbinde mit Apps Script Backend...');
+            try {
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=get_config`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) throw new Error('Netzwerkfehler Backend');
+                
+                const data = await response.json();
+                if (data.apiKey) {
+                    logToConsole('Verbindung stabil & bereit.');
+                } else {
+                    throw new Error('Kein API-Key in Antwort gefunden');
+                }
+            } catch (err) {
+                logToConsole('<span style="color:#ef4444">❌ Hinweis: ' + err.message + ' (Fallback bereit)</span>');
+            }
+        }
+
+        // Anfrage an das Apps Script Backend senden (z.B. Dokumentensuche)
+        async function queryJarvisServer(userQuery) {
             document.getElementById('statusText').innerText = 'JARVIS verarbeitet Befehl...';
-            logToConsole('Sprachbefehl ausgelöst.');
-            setTimeout(() => {
-                document.getElementById('statusText').innerText = 'JARVIS hört zu...';
-            }, 2000);
+            logToConsole(`Frage: "${userQuery}"`);
+
+            try {
+                const url = `${APPS_SCRIPT_URL}?action=search_documents&params=` + encodeURIComponent(JSON.stringify({ query: userQuery }));
+                const response = await fetch(url, { method: 'GET', mode: 'cors' });
+                const data = await response.json();
+                
+                const answer = data.output || "Ich habe keine Informationen dazu gefunden.";
+                logToConsole(`Antwort erhalten.`);
+                document.getElementById('statusText').innerText = answer.substring(0, 80) + '...';
+                
+                // Text anzeigen und laut vorlesen lassen!
+                speakJarvisResponse(answer);
+            } catch (err) {
+                const fallbackMsg = "Entschuldigung, es gab ein Verbindungsproblem zum Server.";
+                logToConsole('<span style="color:#ef4444">Fehler: ' + err.message + '</span>');
+                speakJarvisResponse(fallbackMsg);
+            } finally {
+                setTimeout(() => {
+                    document.getElementById('statusText').innerText = 'Tippe auf den Orb, um mit Jarvis zu sprechen...';
+                }, 4000);
+            }
+        }
+
+        // Spracherkennung (Speech-to-Text) beim Klick auf den Orb
+        const orbBtn = document.getElementById('orbBtn');
+        orbBtn.addEventListener('click', () => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                alert('Dein Browser unterstützt keine Spracherkennung. Bitte tippe direkt oder nutze Chrome/Safari.');
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'de-DE';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                orbBtn.classList.add('listening');
+                document.getElementById('statusText').innerText = 'JARVIS hört zu... Sprich jetzt!';
+                logToConsole('Mikrofon aktiv, lausche...');
+            };
+
+            recognition.onresult = (event) => {
+                const speechResult = event.results[0][0].transcript;
+                logToConsole(`Erkannt: "${speechResult}"`);
+                queryJarvisServer(speechResult);
+            };
+
+            recognition.onerror = (event) => {
+                logToConsole(`<span style="color:#ef4444">Sprachfehler: ${event.error}</span>`);
+                document.getElementById('statusText').innerText = 'Fehler bei der Spracherkennung.';
+                orbBtn.classList.remove('listening');
+            };
+
+            recognition.onend = () => {
+                orbBtn.classList.remove('listening');
+            };
+
+            recognition.start();
         });
 
+        // Start beim Laden der Seite
         window.addEventListener('load', () => {
             initJarvisBackend();
         });
