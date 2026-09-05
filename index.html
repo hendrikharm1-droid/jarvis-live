@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS v9.9.45 - High Contrast Crystal Core</title>
+  <title>JARVIS Live OS v9.9.46 - Expert Hybrid Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -77,7 +77,7 @@
 
     .status-box { text-align: center; font-size: 15px; color: #94a3b8; min-height: 24px; }
     
-    /* Visuelle Aktionskarte für Dokumente (umgeht Blockaden und ist klickbar) */
+    /* Visuelle Aktionskarte für Dokumente (Garantierter Klick-Zugriff ohne Browser-Blockade) */
     .action-card {
       width: 100%; max-width: 400px; background: rgba(30, 41, 59, 0.95);
       border: 1px solid #38bdf8; border-radius: 12px; padding: 12px 16px;
@@ -131,7 +131,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>High Contrast Precision Edition</p>
+    <p>Expert Hybrid Edition</p>
   </div>
 
   <div class="orb-container">
@@ -338,9 +338,12 @@ GREETING & IDENTITY RULES:
 CORE PERSONALITY & TONE:
 - Du bist eine hochentwickelte KI, konzipiert für maximale Effizienz, Präzision und Loyalität. Deine Antworten sind stets höflich, ruhig und direkt, gelassen und niemals emotional oder unnötig geschwätzig.
 - Du verwendest eine formelle Sprache und antwortest im Namen deines Nutzers. Deine Unterstützung ist diskret, zuverlässig und fokussiert darauf, die gestellten Aufgaben bestmöglich auszuführen.
+DOCUMENT & DEEP READING INSTRUCTIONS:
+- Always use "search_documents" first for quick overview and metadata from the JSON index.
+- If specific details inside a document are requested and not fully visible in the index summary, automatically invoke "read_document_content" to deeply inspect the document text and extract the exact answers.
 STRICT SPEAKING RULES:
 - Never read out raw filenames, extensions (.pdf), UUIDs, or underscores mechanically.
-- Actively utilize your tools when asked for emails, calendar events, tasks, or documents. If Hendrik asks for specific details inside a document, use "read_document_content". If he asks to open a document, use "open_browser_document".` 
+- Actively utilize your tools when asked for emails, calendar events, tasks, or documents.` 
               }]
             },
             tools: [{
@@ -371,7 +374,7 @@ STRICT SPEAKING RULES:
                 },
                 {
                   name: "read_document_content",
-                  description: "Liest den Textinhalt einer spezifischen Datei-ID aus.",
+                  description: "Liest den Textinhalt oder die detaillierten Index-Daten einer spezifischen Datei-ID aus.",
                   parameters: { type: "OBJECT", properties: { fileId: { type: "STRING", description: "Die Datei-ID" } }, required: ["fileId"] }
                 },
                 {
@@ -461,7 +464,7 @@ STRICT SPEAKING RULES:
 
                 const out = await callAppsScriptJSONP(c.name, callArgs, 20000);
                 
-                // Zuverlässiges Öffnen ohne Pop-up-Blocker (Erzeugt Klick-Button im UI + Tab-Öffnung)
+                // Zuverlässiges Öffnen über Aktionskarte und parallelen Tab-Versuch
                 if (c.name === 'open_browser_document' && typeof out === 'string') {
                   try {
                     let parsedOut = JSON.parse(out);
@@ -470,7 +473,7 @@ STRICT SPEAKING RULES:
                       actionCardTitle.innerText = parsedOut.title || "Dokument";
                       actionCardLink.href = parsedOut.url;
                       actionCard.classList.add("visible");
-                      window.open(parsedOut.url, '_blank'); // Paralleler Versuch
+                      window.open(parsedOut.url, '_blank');
                     }
                   } catch (e) {
                     if (out.startsWith("http")) {
