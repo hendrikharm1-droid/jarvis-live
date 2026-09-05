@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS v9.9.36 - British Butler Edition</title>
+  <title>JARVIS Live OS v9.9.37 - British Butler Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -265,18 +265,19 @@
               responseModalities: ["AUDIO"],
               speechConfig: {
                 voiceConfig: { 
-                  // 'Charon' oder 'Fenrir' liefern eine dunklere, ruhigere und elegantere Stimmlage für den britischen Stil
                   prebuiltVoiceConfig: { voiceName: "Charon" } 
                 }
               }
             },
             systemInstruction: {
               parts: [{ 
-                text: `You are JARVIS, the hyper-advanced personal AI assistant and digital butler to Hendrik Harm.
+                text: `You are JARVIS, the hyper-advanced personal AI assistant and digital butler to Hendrik.
 CURRENT DATE: ${TODAY_ISO}.
+GREETING & IDENTITY RULES:
+- Greet Hendrik at the start of the conversation according to the current time of day in German ("Guten Morgen Hendrik", "Guten Tag Hendrik", or "Guten Abend Hendrik").
+- Never use "Herr" or any last name. Address him exclusively as "Hendrik".
 CORE PERSONALITY & TONE:
 - Speak flawless, eloquent, polite, and dryly witty German, imbued with the refined elegance, calm composure, and subtle British understatement of a world-class butler (think Paul Bettany's JARVIS).
-- Address Hendrik with utmost respect and quiet loyalty.
 STRICT SPEAKING RULES:
 - Never read out raw filenames, extensions (.pdf), UUIDs, or underscores mechanically (e.g., translate "Abrechnung_Lohn.pdf" seamlessly into natural prose like "Ihre Gehaltsabrechnung").
 - Be concise, direct, and exceptionally articulate. 
@@ -438,7 +439,6 @@ STRICT SPEAKING RULES:
       scriptProcessor.connect(inputContext.destination);
     }
 
-    // Anti-Knack Glättungs-Engine für den Audio-Playback-Puffer
     function playPcmChunkSmooth(base64Data) {
       if (!audioContext) return;
       if (audioContext.state === 'suspended') audioContext.resume();
@@ -460,7 +460,7 @@ STRICT SPEAKING RULES:
 
       const currentTime = audioContext.currentTime;
       if (nextPlayTime < currentTime) {
-        nextPlayTime = currentTime + 0.04; // Etwas größerer Puffer verhindert Knackgeräusche bei Jitter
+        nextPlayTime = currentTime + 0.04;
       }
       
       sourceNode.start(nextPlayTime);
