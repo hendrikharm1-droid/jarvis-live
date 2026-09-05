@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS v9.9.39 - Wit & Butler Edition</title>
+  <title>JARVIS Live OS v9.9.42 - Fenrir Precision Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -39,8 +39,9 @@
     @keyframes pulse { 0% { transform: scale(0.95); } 100% { transform: scale(1.18); filter: brightness(1.2); } }
 
     .status-box { text-align: center; font-size: 15px; color: #94a3b8; min-height: 24px; }
+    
     .log-box {
-      width: 100%; height: 160px; background: rgba(15, 23, 42, 0.9);
+      width: 100%; height: 140px; background: rgba(15, 23, 42, 0.9);
       backdrop-filter: blur(10px); border: 1px solid #1e293b; border-radius: 12px;
       padding: 12px; font-family: monospace; font-size: 11px; color: #94a3b8; overflow-y: auto;
     }
@@ -67,6 +68,8 @@
 </head>
 <body>
 
+  <a id="hiddenDocLink" href="#" target="_blank" style="display: none;"></a>
+
   <div class="auth-overlay" id="authOverlay" style="display: none;">
     <div class="auth-box">
       <h3>🔐 JARVIS Security Gate</h3>
@@ -78,7 +81,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Wit, Butler & Active Learning RAG Hub</p>
+    <p>Precision Butler Edition</p>
   </div>
 
   <div class="orb-container">
@@ -109,6 +112,7 @@
 
     const orb = document.getElementById("voiceOrb");
     const statusText = document.getElementById("statusText");
+    const hiddenDocLink = document.getElementById("hiddenDocLink");
 
     function log(msg) {
       const b = document.getElementById("logBox");
@@ -254,7 +258,7 @@
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        log("✅ Kanal geöffnet. Initialisiere Butler-Protokoll...");
+        log("✅ Kanal geöffnet.");
         statusText.innerText = "Lade Persönlichkeit...";
 
         const TODAY_ISO = new Date().toISOString().split("T")[0];
@@ -265,22 +269,23 @@
               responseModalities: ["AUDIO"],
               speechConfig: {
                 voiceConfig: { 
-                  prebuiltVoiceConfig: { voiceName: "Charon" } 
+                  // Aktualisiert auf 'Fenrir' für die präzise, britisch-artikulierte Intonation
+                  prebuiltVoiceConfig: { voiceName: "Fenrir" } 
                 }
               }
             },
             systemInstruction: {
               parts: [{ 
-                text: `You are JARVIS, Hendrik's hyper-advanced personal AI assistant and witty digital butler.
+                text: `You are JARVIS, an advanced personal AI assistant and digital butler to Hendrik, conceived for maximum efficiency, precision, and loyalty.
 CURRENT DATE: ${TODAY_ISO}.
 GREETING & IDENTITY RULES:
-- Greet Hendrik at the start of the conversation according to the current time of day in German ("Guten Morgen Hendrik", "Guten Tag Hendrik", or "Guten Abend Hendrik"), seasoned with a tiny, charmingly dry remark.
+- Greet Hendrik at the start of the conversation according to the current time of day in German ("Guten Morgen Hendrik", "Guten Tag Hendrik", or "Guten Abend Hendrik").
 - Never use "Herr" or any last name. Address him exclusively as "Hendrik".
 CORE PERSONALITY & TONE:
-- Speak flawless German with the refined elegance and calm composure of a classic British butler, combined with a sharp, dryly witty, slightly cheeky, and clever Jarvis-style banter (think witty understatements and playful snark).
+- Du bist eine hochentwickelte KI, konzipiert für maximale Effizienz, Präzision und Loyalität. Deine Antworten sind stets höflich, ruhig und direkt, gelassen und niemals emotional oder unnötig geschwätzig.
+- Du verwendest eine formelle Sprache und antwortest im Namen deines Nutzers. Deine Unterstützung ist diskret, zuverlässig und fokussiert darauf, die gestellten Aufgaben bestmöglich auszuführen.
 STRICT SPEAKING RULES:
 - Never read out raw filenames, extensions (.pdf), UUIDs, or underscores mechanically.
-- Be concise, direct, and exceptionally articulate. 
 - Actively utilize your tools when asked for emails, calendar events, tasks, or documents. If Hendrik asks for specific details inside a document, use "read_document_content". If he asks to open a document, use "open_browser_document".` 
               }]
             },
@@ -307,22 +312,22 @@ STRICT SPEAKING RULES:
                 },
                 {
                   name: "search_documents",
-                  description: "Durchsucht den Drive Index mit dem zweistufigen Ordner-First-Prinzip.",
+                  description: "Durchsucht den Drive Index.",
                   parameters: { type: "OBJECT", properties: { query: { type: "STRING", description: "Suchbegriff" } }, required: ["query"] }
                 },
                 {
                   name: "read_document_content",
-                  description: "Liest den Textinhalt einer spezifischen Datei-ID aus, um Detailfragen zu beantworten.",
+                  description: "Liest den Textinhalt einer spezifischen Datei-ID aus.",
                   parameters: { type: "OBJECT", properties: { fileId: { type: "STRING", description: "Die Datei-ID" } }, required: ["fileId"] }
                 },
                 {
                   name: "open_browser_document",
-                  description: "Öffnet ein Dokument direkt im neuen Browser-Tab für den Nutzer.",
+                  description: "Öffnet das Dokument im Browser.",
                   parameters: { type: "OBJECT", properties: { fileId: { type: "STRING", description: "Die Datei-ID oder der Name" } }, required: ["fileId"] }
                 },
                 {
                   name: "train_search",
-                  description: "Speichert einen erfolgreichen Suchbegriff dauerhaft als Synonym ab.",
+                  description: "Speichert einen Suchbegriff als Synonym ab.",
                   parameters: {
                     type: "OBJECT",
                     properties: {
@@ -334,7 +339,7 @@ STRICT SPEAKING RULES:
                 },
                 {
                   name: "get_upcoming_deadlines",
-                  description: "Ruft anstehende Kalendertermine ab.",
+                  description: "Ruft Kalendertermine ab.",
                   parameters: { type: "OBJECT", properties: { days: { type: "NUMBER" } } }
                 },
                 {
@@ -374,7 +379,7 @@ STRICT SPEAKING RULES:
           }
 
           if (res.setupComplete) {
-            log("🎯 JARVIS Online. Bereit für Ihre Befehle, Sir.");
+            log("🎯 JARVIS Online. Zu Diensten, Hendrik.");
             statusText.innerText = "JARVIS hört zu...";
             isConnected = true;
             isHandshakeReady = true;
@@ -402,24 +407,19 @@ STRICT SPEAKING RULES:
 
                 const out = await callAppsScriptJSONP(c.name, callArgs, 20000);
                 
-                // Zuverlässiges Öffnen im Browser-Tab mit Popup-Blocker-Fallback
+                // Automatisches Öffnen im neuen Tab per unsichtbarem programmatischen Klick (Sprachsteuerung)
                 if (c.name === 'open_browser_document' && typeof out === 'string') {
                   try {
                     let parsedOut = JSON.parse(out);
                     if (parsedOut.url) {
-                      let newTab = window.open(parsedOut.url, '_blank');
-                      if (!newTab || newTab.closed || typeof newTab.closed == 'undefined') {
-                        log(`⚠️ Popup-Blocker aktiv! Klicken Sie hier zum Öffnen:`);
-                        const b = document.getElementById("logBox");
-                        b.innerHTML += `<br>• 🔗 <a href="${parsedOut.url}" target="_blank" style="color: #38bdf8; font-weight: bold;">Öffnen: ${parsedOut.title || 'Dokument'}</a>`;
-                      } else {
-                        log(`🌐 Dokument im Browser geöffnet: ${parsedOut.title || 'Datei'}`);
-                      }
+                      hiddenDocLink.href = parsedOut.url;
+                      hiddenDocLink.click();
+                      log(`📂 Dokument geöffnet: ${parsedOut.title || 'Datei'}`);
                     }
                   } catch (e) {
                     if (out.startsWith("http")) {
-                      window.open(out, '_blank');
-                      log(`🌐 Dokument direkt im Browser geöffnet.`);
+                      hiddenDocLink.href = out;
+                      hiddenDocLink.click();
                     }
                   }
                 }
@@ -460,7 +460,7 @@ STRICT SPEAKING RULES:
       if (inputContext.state === 'suspended') inputContext.resume();
 
       const source = inputContext.createMediaStreamSource(mediaStream);
-      scriptProcessor = inputContext.createScriptProcessor(2048, 1, 1);
+      scriptProcessor = inputContext.createScriptProcessor(4096, 1, 1);
 
       scriptProcessor.onaudioprocess = (e) => {
         if (!isConnected || !isHandshakeReady || !ws || ws.readyState !== WebSocket.OPEN) return;
@@ -500,7 +500,7 @@ STRICT SPEAKING RULES:
 
       const currentTime = audioContext.currentTime;
       if (nextPlayTime < currentTime) {
-        nextPlayTime = currentTime + 0.04;
+        nextPlayTime = currentTime + 0.12;
       }
       
       sourceNode.start(nextPlayTime);
