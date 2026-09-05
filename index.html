@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -446,26 +447,3 @@ STRIKTE SPRECHREGELN:
   </script>
 </body>
 </html>
-2. Backend-Anpassung in Backend_Router für echtes Deep-Reading
-Damit bei Detailfragen nicht nur die Indextabelle durchsucht wird, sondern der Inhalt des Vektor-Gedächtnisses (inklusive Beträgen, Vertragskonditionen und Deep-Read-Texten) angezapft wird, stellen wir sicher, dass search_documents im Backend_Router (Modul 2) direkt die semantische RAG-Engine (queryJarvisVectorMemory) mit tieferem Kontext füttert.
-
-Ergänze oder aktualisiere in deinem Modul 2 (Backend_Router) die Funktion search_documents bzw. im doGet-Switch diese Weiterleitung:
-
-JavaScript
-// In Modul 2 (Backend_Router) sicherstellen:
-      case 'search_documents':
-        // Führt jetzt ein echtes Deep-Reading über das Vektor-Gedächtnis aus
-        result = { output: queryJarvisVectorMemory(params.query || '', 5) };
-        break;
-
-      case 'get_recent_emails':
-        result = { output: getJarvisRecentEmailsDirect('in:inbox', params.limit || 5) };
-        break;
-
-      case 'get_open_tasks':
-        result = { output: getJarvisOpenTasksDirect() };
-        break;
-
-      case 'create_task':
-        result = { output: createJarvisTaskDirect(params.title || 'Neue Aufgabe', params.notes || '', params.dueDaysOffset || 1) };
-        break;
