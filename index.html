@@ -1,269 +1,471 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JARVIS LIVE OS - Mobile Native Voice Hub v9.9.36</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #0b132b;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .header {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .header h1 {
-            color: #4cc9f0;
-            margin: 0;
-            font-size: 24px;
-            letter-spacing: 1px;
-        }
-        .header p {
-            color: #8d99ae;
-            font-size: 12px;
-            margin: 5px 0 0 0;
-        }
-        .orb-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex-grow: 1;
-        }
-        .orb {
-            width: 140px;
-            height: 140px;
-            border-radius: 50%;
-            background: radial-gradient(circle, #4cc9f0 0%, #3a0ca3 70%, #7209b7 100%);
-            box-shadow: 0 0 40px rgba(76, 201, 240, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .orb:active {
-            transform: scale(0.95);
-        }
-        .orb.listening {
-            box-shadow: 0 0 60px rgba(239, 68, 68, 0.8);
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        .orb svg {
-            width: 50px;
-            height: 50px;
-            fill: #ffffff;
-        }
-        .status-text {
-            margin-top: 20px;
-            color: #8d99ae;
-            font-size: 14px;
-            text-align: center;
-            padding: 0 20px;
-        }
-        .console-box {
-            width: 90%;
-            max-width: 500px;
-            height: 140px;
-            background: rgba(15, 23, 42, 0.85);
-            border: 1px solid #1e293b;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 20px;
-            font-family: monospace;
-            font-size: 11px;
-            overflow-y: auto;
-            color: #cbd5e1;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#090d16">
+  <title>JARVIS Live OS v9.9.31</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at 50% 30%, #172554 0%, #090d16 100%);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 40px 20px;
+      overflow: hidden;
+    }
+    .header { text-align: center; }
+    .header h1 { font-size: 22px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; }
+    .header p { font-size: 13px; color: #64748b; margin-top: 4px; }
+    
+    .orb-container { position: relative; display: flex; align-items: center; justify-content: center; }
+    .orb {
+      width: 160px; height: 160px; border-radius: 50%;
+      background: radial-gradient(circle, #38bdf8 10%, #2563eb 60%, #1e1b4b 100%);
+      box-shadow: 0 0 50px rgba(56, 189, 248, 0.4);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.3s ease; -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .orb svg { width: 50px; height: 50px; fill: white; pointer-events: none; }
+    .orb.active { animation: pulse 1.4s infinite alternate ease-in-out; box-shadow: 0 0 90px rgba(56, 189, 248, 0.95); }
+    @keyframes pulse { 0% { transform: scale(0.95); } 100% { transform: scale(1.18); filter: brightness(1.2); } }
+
+    .status-box { text-align: center; font-size: 15px; color: #94a3b8; min-height: 24px; }
+    .log-box {
+      width: 100%; height: 160px; background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px); border: 1px solid #1e293b; border-radius: 12px;
+      padding: 12px; font-family: monospace; font-size: 11px; color: #94a3b8; overflow-y: auto;
+    }
+
+    .auth-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(9, 13, 22, 0.95); backdrop-filter: blur(15px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 100; padding: 20px;
+    }
+    .auth-box {
+      background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+      padding: 25px; width: 100%; max-width: 340px; text-align: center;
+    }
+    .auth-box input {
+      width: 100%; padding: 12px; margin: 15px 0; border-radius: 8px;
+      border: 1px solid #475569; background: #0f172a; color: white; font-size: 16px; text-align: center;
+    }
+    .auth-box button {
+      width: 100%; padding: 12px; border-radius: 8px; border: none;
+      background: #38bdf8; color: #0f172a; font-weight: bold; font-size: 16px; cursor: pointer;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>JARVIS LIVE OS</h1>
-        <p>Mobile Native Voice Hub v9.9.36</p>
+  <div class="auth-overlay" id="authOverlay" style="display: none;">
+    <div class="auth-box">
+      <h3>🔐 JARVIS Security Gate</h3>
+      <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Sicherheitsschlüssel eingeben:</p>
+      <input type="password" id="tokenInput" placeholder="Passwort / PIN">
+      <button onclick="saveAuthToken()">Entsperren</button>
     </div>
+  </div>
 
-    <div class="orb-container">
-        <div class="orb" id="orbBtn" title="Tippe, um zu sprechen">
-            <svg viewBox="0 0 24 24">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-            </svg>
-        </div>
-        <div class="status-text" id="statusText">Tippe auf den Orb, um mit Jarvis zu sprechen...</div>
+  <div class="header">
+    <h1>JARVIS Live OS</h1>
+    <p>Natural Voice & Deep RAG Hub</p>
+  </div>
+
+  <div class="orb-container">
+    <div class="orb" id="voiceOrb">
+      <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
     </div>
+  </div>
 
-    <div class="console-box" id="consoleBox">
-        [JARVIS Bereit - v9.9.36]<br>
-        • Sprachmodul & Turbo-Index aktiv...
-    </div>
+  <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
+  <div class="log-box" id="logBox">[JARVIS Bereit]</div>
 
-    <script>
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec';
+  <script>
+    const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
+    const TARGET_MODEL = "models/gemini-2.5-flash-native-audio-latest";
 
-        function logToConsole(msg) {
-            const box = document.getElementById('consoleBox');
-            box.innerHTML += `<br>• ${msg}`;
-            box.scrollTop = box.scrollHeight;
-        }
+    let dynamicApiKey = null;
+    let isConnected = false;
+    let isHandshakeReady = false;
+    let ws = null;
+    let audioContext = null;
+    let inputContext = null;
+    let mediaStream = null;
+    let scriptProcessor = null;
+    let nextPlayTime = 0;
+    let authToken = localStorage.getItem("JARVIS_AUTH_TOKEN") || localStorage.getItem("JARVIS_WEBAPP_SECRET") || "";
 
-        // Bereinigt den Text vor der Sprachausgabe von URLs, Dateiendungen und technischen Symbolen
-        function cleanTextForSpeech(rawText) {
-            if (!rawText) return "Keine Information verfügbar.";
-            return rawText
-                .replace(/https?:\/\/[^\s]+/g, '') // Entfernt jegliche http/https Links
-                .replace(/Direkt-Link:?/gi, '') // Entfernt das Wort Direkt-Link
-                .replace(/\[Treffer \d+\]/gi, 'Treffer:') // Macht Treffer sprechbarer
-                .replace(/\.pdf/gi, '') // Entfernt .pdf Endungen
-                .replace(/[_]/g, ' ') // Ersetzt Unterstriche durch Leerzeichen
-                .replace(/([0-9]+)\s*EUR/gi, '$1 Euro') // Wandelt "EUR" in "Euro" um
-                .substring(0, 250); // Kürzt den Text für flüssiges Vorlesen
-        }
+    const orb = document.getElementById("voiceOrb");
+    const statusText = document.getElementById("statusText");
 
-        // Natürliche Sprachausgabe (Text-to-Speech)
-        function speakJarvisResponse(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                
-                const speechText = cleanTextForSpeech(text);
-                const utterance = new SpeechSynthesisUtterance(speechText);
-                
-                utterance.lang = 'de-DE';
-                utterance.rate = 1.0; // Normale Sprechgeschwindigkeit
-                utterance.pitch = 1.0;
+    function log(msg) {
+      const b = document.getElementById("logBox");
+      b.innerHTML += `<br>• ${msg}`;
+      b.scrollTop = b.scrollHeight;
+    }
 
-                // Versuche, eine hochwertige deutsche Stimme (Google, Natural, Microsoft) zu finden
-                const voices = window.speechSynthesis.getVoices();
-                const naturalGermanVoice = voices.find(v => (v.lang.includes('de') || v.lang.includes('DE')) && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Microsoft') || v.name.includes('Hedda')));
-                
-                if (naturalGermanVoice) {
-                    utterance.voice = naturalGermanVoice;
-                } else {
-                    const fallbackGerman = voices.find(v => v.lang.includes('de') || v.lang.includes('DE'));
-                    if (fallbackGerman) utterance.voice = fallbackGerman;
-                }
+    function callAppsScriptJSONP(action, params = {}) {
+      return new Promise((resolve, reject) => {
+        const callbackName = "jarvis_cb_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+        window[callbackName] = function(data) {
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+          resolve(data);
+        };
 
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        function callJarvisJSONP(action, paramsObj, callbackName) {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                const paramStr = JSON.stringify(paramsObj || {});
-                window[callbackName] = function(data) {
-                    delete window[callbackName];
-                    document.body.removeChild(script);
-                    resolve(data);
-                };
-                script.onerror = function(err) {
-                    delete window[callbackName];
-                    if (script.parentNode) document.body.removeChild(script);
-                    reject(err);
-                };
-                script.src = `${APPS_SCRIPT_URL}?action=${action}&params=${encodeURIComponent(paramStr)}&callback=${callbackName}`;
-                document.body.appendChild(script);
-            });
-        }
-
-        async function initJarvisBackend() {
-            logToConsole('Verbinde mit Apps Script Backend...');
-            try {
-                const cbName = 'initCb_' + Math.random().toString(36).substring(7);
-                const data = await callJarvisJSONP('get_config', {}, cbName);
-                
-                if (data && data.apiKey) {
-                    logToConsole('Verbindung stabil & JSON-Turbo aktiv.');
-                } else {
-                    throw new Error('Antwort ohne API-Key');
-                }
-            } catch (err) {
-                logToConsole('<span style="color:#ef4444">❌ Backend-Verbindung aktiv (JSONP-Modus)</span>');
-            }
-        }
-
-        async function queryJarvisServer(userQuery) {
-            document.getElementById('statusText').innerText = 'JARVIS verarbeitet Befehl...';
-            logToConsole(`Frage: "${userQuery}"`);
-
-            try {
-                const cbName = 'searchCb_' + Math.random().toString(36).substring(7);
-                const data = await callJarvisJSONP('search_documents', { query: userQuery }, cbName);
-                
-                const answer = data.output || "Ich habe keine Informationen dazu gefunden.";
-                logToConsole(`Antwort erhalten.`);
-                document.getElementById('statusText').innerText = answer.substring(0, 80) + '...';
-                
-                speakJarvisResponse(answer);
-            } catch (err) {
-                const fallbackMsg = "Entschuldigung, es gab ein Verbindungsproblem beim Durchsuchen des Indexes.";
-                logToConsole('<span style="color:#ef4444">Fehler bei Abfrage</span>');
-                speakJarvisResponse(fallbackMsg);
-            } finally {
-                setTimeout(() => {
-                    document.getElementById('statusText').innerText = 'Tippe auf den Orb, um mit Jarvis zu sprechen...';
-                }, 4000);
-            }
-        }
-
-        const orbBtn = document.getElementById('orbBtn');
-        orbBtn.addEventListener('click', () => {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            
-            if (!SpeechRecognition) {
-                alert('Dein Browser unterstützt keine Spracherkennung. Bitte nutze Chrome oder Safari.');
-                return;
-            }
-
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'de-DE';
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
-
-            recognition.onstart = () => {
-                orbBtn.classList.add('listening');
-                document.getElementById('statusText').innerText = 'JARVIS hört zu... Sprich jetzt!';
-                logToConsole('Mikrofon aktiv, lausche...');
-            };
-
-            recognition.onresult = (event) => {
-                const speechResult = event.results[0][0].transcript;
-                logToConsole(`Erkannt: "${speechResult}"`);
-                queryJarvisServer(speechResult);
-            };
-
-            recognition.onerror = (event) => {
-                logToConsole(`<span style="color:#ef4444">Sprachfehler: ${event.error}</span>`);
-                document.getElementById('statusText').innerText = 'Fehler bei der Spracherkennung.';
-                orbBtn.classList.remove('listening');
-            };
-
-            recognition.onend = () => {
-                orbBtn.classList.remove('listening');
-            };
-
-            recognition.start();
+        const script = document.createElement("script");
+        const queryParams = new URLSearchParams({
+          action: action,
+          authToken: authToken,
+          callback: callbackName,
+          params: JSON.stringify(params)
         });
 
-        window.addEventListener('load', () => {
-            initJarvisBackend();
+        script.src = `${APPS_SCRIPT_WEBAPP_URL}?${queryParams.toString()}`;
+        script.onerror = function() {
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+          reject(new Error("Netzwerkfehler Backend"));
+        };
+        document.body.appendChild(script);
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      if (!authToken) {
+        document.getElementById("authOverlay").style.display = "flex";
+      }
+    });
+
+    function saveAuthToken() {
+      const val = document.getElementById("tokenInput").value.trim();
+      if (val) {
+        localStorage.setItem("JARVIS_AUTH_TOKEN", val);
+        localStorage.setItem("JARVIS_WEBAPP_SECRET", val);
+        authToken = val;
+        document.getElementById("authOverlay").style.display = "none";
+        log("✅ Schlüssel gespeichert.");
+      }
+    }
+
+    orb.addEventListener("click", handleOrbClick);
+
+    async function handleOrbClick() {
+      if (!authToken) {
+        document.getElementById("authOverlay").style.display = "flex";
+        return;
+      }
+      if (isConnected) {
+        stopSession();
+      } else {
+        await startSession();
+      }
+    }
+
+    async function startSession() {
+      orb.classList.add("active");
+      statusText.innerText = "Initialisiere Hardware...";
+      isHandshakeReady = false;
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
         });
-    </script>
+
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+        nextPlayTime = audioContext.currentTime;
+
+        log("🎙️ Mikrofon aktiv.");
+
+        if (!dynamicApiKey) {
+          statusText.innerText = "Lade Konfiguration...";
+          log("Hole API-Key vom Apps Script Backend...");
+          const res = await callAppsScriptJSONP("get_config");
+
+          if (!res || !res.apiKey) {
+            log("🚨 Konfigurationsfehler: " + (res?.error || "Kein API-Key"));
+            stopSession();
+            return;
+          }
+          dynamicApiKey = res.apiKey.trim();
+          log("🔑 Key geladen.");
+        }
+
+        statusText.innerText = "Verbinde mit Gemini Live...";
+        connectWebSocket();
+      } catch (err) {
+        log("❌ Fehler: " + err.message);
+        stopSession();
+      }
+    }
+
+    function connectWebSocket() {
+      log(`Öffne Live-WebSocket (${TARGET_MODEL})...`);
+      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${dynamicApiKey}`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        log("✅ WebSocket offen. Sende Setup mit Tools...");
+        statusText.innerText = "Synchronisiere Setup...";
+
+        const TODAY_ISO = new Date().toISOString().split("T")[0];
+        const setupMessage = {
+          setup: {
+            model: TARGET_MODEL,
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: { voiceName: "Puck" } // Natürlicher, warmer Klang statt roboterhaftem Aoede/Kore
+                }
+              }
+            },
+            systemInstruction: {
+              parts: [{ 
+                text: `Du bist JARVIS, der hochentwickelte persönliche KI-Assistent von Hendrik Harm.
+HEUTIGES DATUM: ${TODAY_ISO}.
+STRIKTE SPRECHREGELN: 
+- Lies niemals Dateinamen, IDs oder Unterstriche (wie z.B. 2026-03-05_strom_vattenfall.pdf) mechanisch vor! Übersetze technische Dateinamen beim Sprechen immer in natürliche deutsche Sätze (z.B. "Die Vattenfall Stromrechnung vom 5. März").
+- Antworte absolut menschlich, flüssig, präzise und direkt auf Deutsch.
+- Nutze aktiv deine Tools, wenn Hendrik nach E-Mails, Terminen, Aufgaben oder Dokumenten (inklusive Deep-Reading im Inhalt) fragt.` 
+              }]
+            },
+            tools: [{
+              functionDeclarations: [
+                {
+                  name: "create_draft_with_attachment",
+                  description: "Erstellt einen echten E-Mail-Entwurf im Gmail-Postfach von Hendrik Harm.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      recipient: { type: "STRING", description: "Empfänger-Adresse" },
+                      subject: { type: "STRING", description: "Betreff" },
+                      body: { type: "STRING", description: "Inhalt" },
+                      fileId: { type: "STRING", description: "Optional: Datei-ID für Anhang" }
+                    },
+                    required: ["subject", "body"]
+                  }
+                },
+                {
+                  name: "get_recent_emails",
+                  description: "Ruft ungelesene oder aktuelle E-Mails aus dem Posteingang von Hendrik Harm ab.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      limit: { type: "NUMBER", description: "Anzahl (Standard: 5)" }
+                    }
+                  }
+                },
+                {
+                  name: "search_documents",
+                  description: "Durchsucht den Drive Index und führt ein Deep-Reading im Vektor-Inhalt aus, wenn genaue Details oder Rechnungsbeträge gesucht werden.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      query: { type: "STRING", description: "Suchbegriff oder inhaltliche Frage" }
+                    },
+                    required: ["query"]
+                  }
+                },
+                {
+                  name: "get_upcoming_deadlines",
+                  description: "Ruft anstehende Kalendertermine und Fristen ab.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      days: { type: "NUMBER", description: "Tage im Voraus" }
+                    }
+                  }
+                },
+                {
+                  name: "get_open_tasks",
+                  description: "Ruft offene Aufgaben aus der Google Tasks Liste 'JARVIS Fristen & Aufgaben' ab.",
+                  parameters: { type: "OBJECT", properties: {} }
+                },
+                {
+                  name: "create_task",
+                  description: "Erstellt eine neue Aufgabe in Google Tasks.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      title: { type: "STRING", description: "Aufgabentitel" },
+                      notes: { type: "STRING", description: "Notizen/Details" },
+                      dueDaysOffset: { type: "NUMBER", description: "Fällig in X Tagen" }
+                    },
+                    required: ["title"]
+                  }
+                }
+              ]
+            }]
+          }
+        };
+
+        ws.send(JSON.stringify(setupMessage));
+      };
+
+      ws.onmessage = async (event) => {
+        try {
+          let textData = event.data;
+          if (event.data instanceof Blob) {
+            textData = await event.data.text();
+          }
+          const res = JSON.parse(textData);
+
+          if (res.error) {
+            log(`🚨 Google-Fehler: ${res.error.message || JSON.stringify(res.error)}`);
+            return;
+          }
+
+          if (res.setupComplete) {
+            log("🎯 JARVIS Live & Workspace gekoppelt!");
+            statusText.innerText = "JARVIS hört zu...";
+            isConnected = true;
+            isHandshakeReady = true;
+            startAudioStreaming();
+            return;
+          }
+
+          if (res.toolCall) {
+            const calls = res.toolCall.functionCalls || [];
+            const responses = [];
+            for (let c of calls) {
+              log(`⚡ Tool aktiv: <b>${c.name}</b>`);
+              try {
+                const out = await callAppsScriptJSONP(c.name, c.args || {});
+                log(`📥 Daten geladen für ${c.name}`);
+                responses.push({ name: c.name, id: c.id, response: { output: out } });
+              } catch (err) {
+                log(`❌ Tool-Fehler: ${err.message}`);
+                responses.push({ name: c.name, id: c.id, response: { error: err.message } });
+              }
+            }
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }));
+            }
+          }
+
+          if (res.serverContent?.modelTurn?.parts) {
+            for (let p of res.serverContent.modelTurn.parts) {
+              if (p.inlineData && p.inlineData.mimeType?.startsWith("audio/pcm")) {
+                playPcmChunkSmooth(p.inlineData.data);
+              }
+            }
+          }
+        } catch (e) {
+          log("⚠️ Nachricht: " + e.message);
+        }
+      };
+
+      ws.onerror = (e) => log("❌ WebSocket Verbindungsfehler");
+      ws.onclose = (e) => {
+        log(`Sitzung beendet (${e.code}).`);
+        stopSession();
+      };
+    }
+
+    function startAudioStreaming() {
+      inputContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      if (inputContext.state === 'suspended') inputContext.resume();
+
+      const source = inputContext.createMediaStreamSource(mediaStream);
+      scriptProcessor = inputContext.createScriptProcessor(4096, 1, 1);
+
+      scriptProcessor.onaudioprocess = (e) => {
+        if (!isConnected || !isHandshakeReady || !ws || ws.readyState !== WebSocket.OPEN) return;
+        const input = e.inputBuffer.getChannelData(0);
+        const pcm16 = new Int16Array(input.length);
+        for (let i = 0; i < input.length; i++) {
+          pcm16[i] = Math.max(-1, Math.min(1, input[i])) * 0x7FFF;
+        }
+        const base64Audio = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
+        ws.send(JSON.stringify({
+          realtimeInput: { mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: base64Audio }] }
+        }));
+      };
+
+      source.connect(scriptProcessor);
+      scriptProcessor.connect(inputContext.destination);
+      log("🎙️ Live Audio Stream aktiv.");
+    }
+
+    function playPcmChunkSmooth(base64Data) {
+      if (!audioContext) return;
+      if (audioContext.state === 'suspended') audioContext.resume();
+
+      const binaryString = atob(base64Data);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const pcm16 = new Int16Array(bytes.buffer);
+      const audioBuffer = audioContext.createBuffer(1, pcm16.length, 24000);
+      const channelData = audioBuffer.getChannelData(0);
+
+      for (let i = 0; i < pcm16.length; i++) {
+        channelData[i] = pcm16[i] / 32768.0;
+      }
+
+      const sourceNode = audioContext.createBufferSource();
+      sourceNode.buffer = audioBuffer;
+      sourceNode.connect(audioContext.destination);
+
+      const currentTime = audioContext.currentTime;
+      if (nextPlayTime < currentTime) {
+        nextPlayTime = currentTime + 0.02;
+      }
+      sourceNode.start(nextPlayTime);
+      nextPlayTime += audioBuffer.duration;
+    }
+
+    function stopSession() {
+      isConnected = false;
+      isHandshakeReady = false;
+      if (ws) { try { ws.close(); } catch(e){} ws = null; }
+      if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+      if (scriptProcessor) { try { scriptProcessor.disconnect(); } catch(e){} scriptProcessor = null; }
+      if (inputContext && inputContext.state !== 'closed') { try { inputContext.close(); } catch(e){} inputContext = null; }
+      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} audioContext = null; }
+      nextPlayTime = 0;
+      orb.classList.remove("active");
+      statusText.innerText = "Tippe auf den Orb, um zu sprechen";
+    }
+  </script>
 </body>
 </html>
+2. Backend-Anpassung in Backend_Router für echtes Deep-Reading
+Damit bei Detailfragen nicht nur die Indextabelle durchsucht wird, sondern der Inhalt des Vektor-Gedächtnisses (inklusive Beträgen, Vertragskonditionen und Deep-Read-Texten) angezapft wird, stellen wir sicher, dass search_documents im Backend_Router (Modul 2) direkt die semantische RAG-Engine (queryJarvisVectorMemory) mit tieferem Kontext füttert.
+
+Ergänze oder aktualisiere in deinem Modul 2 (Backend_Router) die Funktion search_documents bzw. im doGet-Switch diese Weiterleitung:
+
+JavaScript
+// In Modul 2 (Backend_Router) sicherstellen:
+      case 'search_documents':
+        // Führt jetzt ein echtes Deep-Reading über das Vektor-Gedächtnis aus
+        result = { output: queryJarvisVectorMemory(params.query || '', 5) };
+        break;
+
+      case 'get_recent_emails':
+        result = { output: getJarvisRecentEmailsDirect('in:inbox', params.limit || 5) };
+        break;
+
+      case 'get_open_tasks':
+        result = { output: getJarvisOpenTasksDirect() };
+        break;
+
+      case 'create_task':
+        result = { output: createJarvisTaskDirect(params.title || 'Neue Aufgabe', params.notes || '', params.dueDaysOffset || 1) };
+        break;
