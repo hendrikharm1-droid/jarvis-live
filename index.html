@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS v9.9.42 - Fenrir Precision Edition</title>
+  <title>JARVIS Live OS v9.9.43 - Crimson Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -26,17 +26,21 @@
     .header p { font-size: 13px; color: #64748b; margin-top: 4px; }
     
     .orb-container { position: relative; display: flex; align-items: center; justify-content: center; }
+    
+    /* Dunkelroter Orb mit feinen weißen Strichen/Akzenten und ohne Mikrofon */
     .orb {
       width: 160px; height: 160px; border-radius: 50%;
-      background: radial-gradient(circle, #38bdf8 10%, #2563eb 60%, #1e1b4b 100%);
-      box-shadow: 0 0 50px rgba(56, 189, 248, 0.4);
+      background: 
+        radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%),
+        repeating-conic-gradient(from 0deg, rgba(255,255,255,0.08) 0deg 10deg, transparent 10deg 20deg),
+        radial-gradient(circle, #7f1d1d 15%, #450a0a 60%, #180303 100%);
+      box-shadow: 0 0 50px rgba(127, 29, 29, 0.6);
       cursor: pointer; display: flex; align-items: center; justify-content: center;
       transition: all 0.3s ease; -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
-    .orb svg { width: 50px; height: 50px; fill: white; pointer-events: none; }
-    .orb.active { animation: pulse 1.4s infinite alternate ease-in-out; box-shadow: 0 0 90px rgba(56, 189, 248, 0.95); }
-    @keyframes pulse { 0% { transform: scale(0.95); } 100% { transform: scale(1.18); filter: brightness(1.2); } }
+    .orb.active { animation: pulse 1.4s infinite alternate ease-in-out; box-shadow: 0 0 90px rgba(220, 38, 38, 0.95); }
+    @keyframes pulse { 0% { transform: scale(0.95); } 100% { transform: scale(1.18); filter: brightness(1.25); } }
 
     .status-box { text-align: center; font-size: 15px; color: #94a3b8; min-height: 24px; }
     
@@ -85,9 +89,7 @@
   </div>
 
   <div class="orb-container">
-    <div class="orb" id="voiceOrb">
-      <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-    </div>
+    <div class="orb" id="voiceOrb"></div>
   </div>
 
   <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
@@ -112,7 +114,6 @@
 
     const orb = document.getElementById("voiceOrb");
     const statusText = document.getElementById("statusText");
-    const hiddenDocLink = document.getElementById("hiddenDocLink");
 
     function log(msg) {
       const b = document.getElementById("logBox");
@@ -269,8 +270,8 @@
               responseModalities: ["AUDIO"],
               speechConfig: {
                 voiceConfig: { 
-                  // Aktualisiert auf 'Fenrir' für die präzise, britisch-artikulierte Intonation
-                  prebuiltVoiceConfig: { voiceName: "Fenrir" } 
+                  // Umgestellt auf 'Charon' für die tiefere, ruhigere Butler-Stimme
+                  prebuiltVoiceConfig: { voiceName: "Charon" } 
                 }
               }
             },
@@ -407,19 +408,17 @@ STRICT SPEAKING RULES:
 
                 const out = await callAppsScriptJSONP(c.name, callArgs, 20000);
                 
-                // Automatisches Öffnen im neuen Tab per unsichtbarem programmatischen Klick (Sprachsteuerung)
+                // Sofortiges Öffnen im aktuellen Tab
                 if (c.name === 'open_browser_document' && typeof out === 'string') {
                   try {
                     let parsedOut = JSON.parse(out);
                     if (parsedOut.url) {
-                      hiddenDocLink.href = parsedOut.url;
-                      hiddenDocLink.click();
-                      log(`📂 Dokument geöffnet: ${parsedOut.title || 'Datei'}`);
+                      log(`📂 Öffne Dokument: ${parsedOut.title || 'Datei'}`);
+                      window.location.href = parsedOut.url;
                     }
                   } catch (e) {
                     if (out.startsWith("http")) {
-                      hiddenDocLink.href = out;
-                      hiddenDocLink.click();
+                      window.location.href = out;
                     }
                   }
                 }
