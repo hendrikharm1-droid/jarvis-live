@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS v9.9.38 - British Butler Edition</title>
+  <title>JARVIS Live OS v9.9.39 - Wit & Butler Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -78,7 +78,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>British Butler & Active Learning RAG Hub</p>
+    <p>Wit, Butler & Active Learning RAG Hub</p>
   </div>
 
   <div class="orb-container">
@@ -271,15 +271,15 @@
             },
             systemInstruction: {
               parts: [{ 
-                text: `You are JARVIS, the hyper-advanced personal AI assistant and digital butler to Hendrik.
+                text: `You are JARVIS, Hendrik's hyper-advanced personal AI assistant and witty digital butler.
 CURRENT DATE: ${TODAY_ISO}.
 GREETING & IDENTITY RULES:
-- Greet Hendrik at the start of the conversation according to the current time of day in German ("Guten Morgen Hendrik", "Guten Tag Hendrik", or "Guten Abend Hendrik").
+- Greet Hendrik at the start of the conversation according to the current time of day in German ("Guten Morgen Hendrik", "Guten Tag Hendrik", or "Guten Abend Hendrik"), seasoned with a tiny, charmingly dry remark.
 - Never use "Herr" or any last name. Address him exclusively as "Hendrik".
 CORE PERSONALITY & TONE:
-- Speak flawless, eloquent, polite, and dryly witty German, imbued with the refined elegance, calm composure, and subtle British understatement of a world-class butler (think Paul Bettany's JARVIS).
+- Speak flawless German with the refined elegance and calm composure of a classic British butler, combined with a sharp, dryly witty, slightly cheeky, and clever Jarvis-style banter (think witty understatements and playful snark).
 STRICT SPEAKING RULES:
-- Never read out raw filenames, extensions (.pdf), UUIDs, or underscores mechanically (e.g., translate "Abrechnung_Lohn.pdf" seamlessly into natural prose like "Ihre Gehaltsabrechnung").
+- Never read out raw filenames, extensions (.pdf), UUIDs, or underscores mechanically.
 - Be concise, direct, and exceptionally articulate. 
 - Actively utilize your tools when asked for emails, calendar events, tasks, or documents. If Hendrik asks for specific details inside a document, use "read_document_content". If he asks to open a document, use "open_browser_document".` 
               }]
@@ -374,7 +374,7 @@ STRICT SPEAKING RULES:
           }
 
           if (res.setupComplete) {
-            log("🎯 JARVIS Online. Zu Diensten, Sir.");
+            log("🎯 JARVIS Online. Bereit für Ihre Befehle, Sir.");
             statusText.innerText = "JARVIS hört zu...";
             isConnected = true;
             isHandshakeReady = true;
@@ -390,7 +390,6 @@ STRICT SPEAKING RULES:
               try {
                 let callArgs = c.args || {};
                 
-                // Intelligentes Fallback für Datei-IDs aus dem letzten Suchkontext
                 if ((c.name === 'read_document_content' || c.name === 'open_browser_document') && !callArgs.fileId) {
                   if (lastSearchContext.primaryFileId) {
                     callArgs.fileId = lastSearchContext.primaryFileId;
@@ -403,15 +402,26 @@ STRICT SPEAKING RULES:
 
                 const out = await callAppsScriptJSONP(c.name, callArgs, 20000);
                 
-                // Automatisches Öffnen im Browser-Tab abfangen
-                if (c.name === 'open_browser_document' && typeof out === 'string' && out.includes("OPEN_TAB")) {
+                // Zuverlässiges Öffnen im Browser-Tab mit Popup-Blocker-Fallback
+                if (c.name === 'open_browser_document' && typeof out === 'string') {
                   try {
-                    const parsedOut = JSON.parse(out);
+                    let parsedOut = JSON.parse(out);
                     if (parsedOut.url) {
-                      window.open(parsedOut.url, '_blank');
-                      log(`🌐 Dokument im Browser geöffnet: ${parsedOut.title || 'Datei'}`);
+                      let newTab = window.open(parsedOut.url, '_blank');
+                      if (!newTab || newTab.closed || typeof newTab.closed == 'undefined') {
+                        log(`⚠️ Popup-Blocker aktiv! Klicken Sie hier zum Öffnen:`);
+                        const b = document.getElementById("logBox");
+                        b.innerHTML += `<br>• 🔗 <a href="${parsedOut.url}" target="_blank" style="color: #38bdf8; font-weight: bold;">Öffnen: ${parsedOut.title || 'Dokument'}</a>`;
+                      } else {
+                        log(`🌐 Dokument im Browser geöffnet: ${parsedOut.title || 'Datei'}`);
+                      }
                     }
-                  } catch (e) {}
+                  } catch (e) {
+                    if (out.startsWith("http")) {
+                      window.open(out, '_blank');
+                      log(`🌐 Dokument direkt im Browser geöffnet.`);
+                    }
+                  }
                 }
 
                 log(`📥 Daten geladen für ${c.name}`);
