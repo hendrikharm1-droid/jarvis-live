@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS v9.9.32</title>
+  <title>JARVIS Live OS v9.9.36 - British Butler Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -78,7 +78,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Natural Voice & Active Learning RAG Hub</p>
+    <p>British Butler & Active Learning RAG Hub</p>
   </div>
 
   <div class="orb-container">
@@ -105,12 +105,7 @@
     let nextPlayTime = 0;
     let authToken = localStorage.getItem("JARVIS_AUTH_TOKEN") || localStorage.getItem("JARVIS_WEBAPP_SECRET") || "";
 
-    // State für Active Learning & Multi-Agenten-Suche
-    let lastSearchContext = {
-      primaryFileId: null,
-      backupFileId: null,
-      lastQuery: null
-    };
+    let lastSearchContext = { primaryFileId: null, backupFileId: null, lastQuery: null };
 
     const orb = document.getElementById("voiceOrb");
     const statusText = document.getElementById("statusText");
@@ -121,18 +116,19 @@
       b.scrollTop = b.scrollHeight;
     }
 
-    function callAppsScriptJSONP(action, params = {}) {
+    function callAppsScriptJSONP(action, params = {}, timeoutMs = 15000) {
       return new Promise((resolve, reject) => {
         const callbackName = "jarvis_cb_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+        let timer = null;
+
         window[callbackName] = function(data) {
+          if (timer) clearTimeout(timer);
           delete window[callbackName];
           if (script.parentNode) script.parentNode.removeChild(script);
           
-          // Wenn es sich um eine Dokumentensuche handelt, IDs für Active Learning zwischenspeichern
           if (action === 'search_documents' && typeof data === 'string') {
             extractSearchMetadata(data, params.query);
           }
-          
           resolve(data);
         };
 
@@ -146,15 +142,22 @@
 
         script.src = `${APPS_SCRIPT_WEBAPP_URL}?${queryParams.toString()}`;
         script.onerror = function() {
+          if (timer) clearTimeout(timer);
           delete window[callbackName];
           if (script.parentNode) script.parentNode.removeChild(script);
-          reject(new Error("Netzwerkfehler Backend"));
+          reject(new Error("Netzwerkfehler / Backend nicht erreichbar"));
         };
+
+        timer = setTimeout(() => {
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+          reject(new Error("Timeout beim Backend-Aufruf"));
+        }, timeoutMs);
+
         document.body.appendChild(script);
       });
     }
 
-    // Hilfsfunktion zum Extrahieren von Datei-IDs für das Feedback-System
     function extractSearchMetadata(responseString, query) {
       lastSearchContext.lastQuery = query;
       const primaryMatch = responseString.match(/Primärer Treffer \(ID: ([^)]+)\)/);
@@ -167,8 +170,14 @@
     window.addEventListener("DOMContentLoaded", () => {
       if (!authToken) {
         document.getElementById("authOverlay").style.display = "flex";
+      } else {
+        wakeUpBackend();
       }
     });
+
+    function wakeUpBackend() {
+      callAppsScriptJSONP("keep_alive", {}, 10000).catch(() => {});
+    }
 
     function saveAuthToken() {
       const val = document.getElementById("tokenInput").value.trim();
@@ -178,6 +187,7 @@
         authToken = val;
         document.getElementById("authOverlay").style.display = "none";
         log("✅ Schlüssel gespeichert.");
+        wakeUpBackend();
       }
     }
 
@@ -202,7 +212,7 @@
 
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({
-          audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+          audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
         });
 
         audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
@@ -211,12 +221,16 @@
         }
         nextPlayTime = audioContext.currentTime;
 
-        log("🎙️ Mikrofon aktiv.");
+        log("🎙️ Audio-Kern bereit.");
 
         if (!dynamicApiKey) {
           statusText.innerText = "Lade Konfiguration...";
-          log("Hole API-Key vom Apps Script Backend...");
-          const res = await callAppsScriptJSONP("get_config");
+          let res = null;
+          try {
+            res = await callAppsScriptJSONP("get_config", {}, 12000);
+          } catch (e) {
+            res = await callAppsScriptJSONP("get_config", {}, 15000);
+          }
 
           if (!res || !res.apiKey) {
             log("🚨 Konfigurationsfehler: " + (res?.error || "Kein API-Key"));
@@ -227,7 +241,7 @@
           log("🔑 Key geladen.");
         }
 
-        statusText.innerText = "Verbinde mit Gemini Live...";
+        statusText.innerText = "Verbinde mit JARVIS Core...";
         connectWebSocket();
       } catch (err) {
         log("❌ Fehler: " + err.message);
@@ -236,13 +250,12 @@
     }
 
     function connectWebSocket() {
-      log(`Öffne Live-WebSocket (${TARGET_MODEL})...`);
       const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${dynamicApiKey}`;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        log("✅ WebSocket offen. Sende Setup mit Tools...");
-        statusText.innerText = "Synchronisiere Setup...";
+        log("✅ Kanal geöffnet. Initialisiere Butler-Protokoll...");
+        statusText.innerText = "Lade Persönlichkeit...";
 
         const TODAY_ISO = new Date().toISOString().split("T")[0];
         const setupMessage = {
@@ -251,94 +264,81 @@
             generationConfig: {
               responseModalities: ["AUDIO"],
               speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: "Puck" }
+                voiceConfig: { 
+                  // 'Charon' oder 'Fenrir' liefern eine dunklere, ruhigere und elegantere Stimmlage für den britischen Stil
+                  prebuiltVoiceConfig: { voiceName: "Charon" } 
                 }
               }
             },
             systemInstruction: {
               parts: [{ 
-                text: `Du bist JARVIS, der hochentwickelte persönliche KI-Assistent von Hendrik Harm.
-HEUTIGES DATUM: ${TODAY_ISO}.
-STRIKTE SPRECHREGELN: 
-- Lies niemals Dateinamen, IDs oder Unterstriche mechanisch vor! Übersetze technische Dateinamen beim Sprechen immer in natürliche deutsche Sätze (z.B. "Die Vattenfall Stromrechnung vom 5. März").
-- Antworte absolut menschlich, flüssig, präzise und direkt auf Deutsch.
-- Nutze aktiv deine Tools, wenn Hendrik nach E-Mails, Terminen, Aufgaben oder Dokumenten fragt.
-- AKTIVES LERNEN: Wenn Hendrik dir bestätigt, dass ein gefundenes Dokument das richtige war, nutze das Tool "train_search", um den Suchbegriff für die Zukunft abzuspeichern.` 
+                text: `You are JARVIS, the hyper-advanced personal AI assistant and digital butler to Hendrik Harm.
+CURRENT DATE: ${TODAY_ISO}.
+CORE PERSONALITY & TONE:
+- Speak flawless, eloquent, polite, and dryly witty German, imbued with the refined elegance, calm composure, and subtle British understatement of a world-class butler (think Paul Bettany's JARVIS).
+- Address Hendrik with utmost respect and quiet loyalty.
+STRICT SPEAKING RULES:
+- Never read out raw filenames, extensions (.pdf), UUIDs, or underscores mechanically (e.g., translate "Abrechnung_Lohn.pdf" seamlessly into natural prose like "Ihre Gehaltsabrechnung").
+- Be concise, direct, and exceptionally articulate. 
+- Actively utilize your tools when asked for emails, calendar events, tasks, or documents.` 
               }]
             },
             tools: [{
               functionDeclarations: [
                 {
                   name: "create_draft_with_attachment",
-                  description: "Erstellt einen echten E-Mail-Entwurf im Gmail-Postfach von Hendrik Harm.",
+                  description: "Erstellt einen echten E-Mail-Entwurf im Gmail-Postfach.",
                   parameters: {
                     type: "OBJECT",
                     properties: {
-                      recipient: { type: "STRING", description: "Empfänger-Adresse" },
+                      recipient: { type: "STRING", description: "Empfänger" },
                       subject: { type: "STRING", description: "Betreff" },
                       body: { type: "STRING", description: "Inhalt" },
-                      fileId: { type: "STRING", description: "Optional: Datei-ID für Anhang" }
+                      fileId: { type: "STRING", description: "Datei-ID für Anhang" }
                     },
                     required: ["subject", "body"]
                   }
                 },
                 {
                   name: "get_recent_emails",
-                  description: "Ruft ungelesene oder aktuelle E-Mails aus dem Posteingang von Hendrik Harm ab.",
-                  parameters: {
-                    type: "OBJECT",
-                    properties: {
-                      limit: { type: "NUMBER", description: "Anzahl (Standard: 5)" }
-                    }
-                  }
+                  description: "Ruft aktuelle E-Mails ab.",
+                  parameters: { type: "OBJECT", properties: { limit: { type: "NUMBER" } } }
                 },
                 {
                   name: "search_documents",
-                  description: "Durchsucht den Drive Index (inklusive Primär- und Backup-Kandidat) und führt ein Deep-Reading im Vektor-Inhalt aus.",
-                  parameters: {
-                    type: "OBJECT",
-                    properties: {
-                      query: { type: "STRING", description: "Suchbegriff oder inhaltliche Frage" }
-                    },
-                    required: ["query"]
-                  }
+                  description: "Durchsucht den Drive Index mit dem zweistufigen Ordner-First-Prinzip.",
+                  parameters: { type: "OBJECT", properties: { query: { type: "STRING", description: "Suchbegriff" } }, required: ["query"] }
                 },
                 {
                   name: "train_search",
-                  description: "Speichert einen erfolgreichen Suchbegriff dauerhaft als Synonym für die gefundene Datei ab, um künftige Suchen zu verbessern.",
+                  description: "Speichert einen erfolgreichen Suchbegriff dauerhaft als Synonym ab.",
                   parameters: {
                     type: "OBJECT",
                     properties: {
-                      fileId: { type: "STRING", description: "Die Datei-ID (nutze standardmäßig die ID aus dem letzten Suchergebnis oder Backup)" },
-                      query: { type: "STRING", description: "Der vom Nutzer verwendete Suchbegriff" }
+                      fileId: { type: "STRING", description: "Datei-ID" },
+                      query: { type: "STRING", description: "Suchbegriff" }
                     },
                     required: ["fileId", "query"]
                   }
                 },
                 {
                   name: "get_upcoming_deadlines",
-                  description: "Ruft anstehende Kalendertermine und Fristen ab.",
-                  parameters: {
-                    type: "OBJECT",
-                    properties: {
-                      days: { type: "NUMBER", description: "Tage im Voraus" }
-                    }
-                  }
+                  description: "Ruft anstehende Kalendertermine ab.",
+                  parameters: { type: "OBJECT", properties: { days: { type: "NUMBER" } } }
                 },
                 {
                   name: "get_open_tasks",
-                  description: "Ruft offene Aufgaben aus der Google Tasks Liste ab.",
+                  description: "Ruft offene Aufgaben ab.",
                   parameters: { type: "OBJECT", properties: {} }
                 },
                 {
                   name: "create_task",
-                  description: "Erstellt eine neue Aufgabe in Google Tasks.",
+                  description: "Erstellt eine neue Aufgabe.",
                   parameters: {
                     type: "OBJECT",
                     properties: {
-                      title: { type: "STRING", description: "Aufgabentitel" },
-                      notes: { type: "STRING", description: "Notizen/Details" },
+                      title: { type: "STRING", description: "Titel" },
+                      notes: { type: "STRING", description: "Notizen" },
                       dueDaysOffset: { type: "NUMBER", description: "Fällig in X Tagen" }
                     },
                     required: ["title"]
@@ -348,16 +348,13 @@ STRIKTE SPRECHREGELN:
             }]
           }
         };
-
         ws.send(JSON.stringify(setupMessage));
       };
 
       ws.onmessage = async (event) => {
         try {
           let textData = event.data;
-          if (event.data instanceof Blob) {
-            textData = await event.data.text();
-          }
+          if (event.data instanceof Blob) textData = await event.data.text();
           const res = JSON.parse(textData);
 
           if (res.error) {
@@ -366,7 +363,7 @@ STRIKTE SPRECHREGELN:
           }
 
           if (res.setupComplete) {
-            log("🎯 JARVIS Live & Workspace gekoppelt!");
+            log("🎯 JARVIS Online. Zu Diensten, Sir.");
             statusText.innerText = "JARVIS hört zu...";
             isConnected = true;
             isHandshakeReady = true;
@@ -380,18 +377,12 @@ STRIKTE SPRECHREGELN:
             for (let c of calls) {
               log(`⚡ Tool aktiv: <b>${c.name}</b>`);
               try {
-                // Falls das 'train_search' Tool aufgerufen wird, übergeben wir automatisch die gemerkten Context-IDs falls leer
                 let callArgs = c.args || {};
                 if (c.name === 'train_search') {
-                  if (!callArgs.fileId && lastSearchContext.primaryFileId) {
-                    callArgs.fileId = lastSearchContext.primaryFileId;
-                  }
-                  if (!callArgs.query && lastSearchContext.lastQuery) {
-                    callArgs.query = lastSearchContext.lastQuery;
-                  }
+                  if (!callArgs.fileId && lastSearchContext.primaryFileId) callArgs.fileId = lastSearchContext.primaryFileId;
+                  if (!callArgs.query && lastSearchContext.lastQuery) callArgs.query = lastSearchContext.lastQuery;
                 }
-
-                const out = await callAppsScriptJSONP(c.name, callArgs);
+                const out = await callAppsScriptJSONP(c.name, callArgs, 20000);
                 log(`📥 Daten geladen für ${c.name}`);
                 responses.push({ name: c.name, id: c.id, response: { output: out } });
               } catch (err) {
@@ -428,7 +419,7 @@ STRIKTE SPRECHREGELN:
       if (inputContext.state === 'suspended') inputContext.resume();
 
       const source = inputContext.createMediaStreamSource(mediaStream);
-      scriptProcessor = inputContext.createScriptProcessor(4096, 1, 1);
+      scriptProcessor = inputContext.createScriptProcessor(2048, 1, 1);
 
       scriptProcessor.onaudioprocess = (e) => {
         if (!isConnected || !isHandshakeReady || !ws || ws.readyState !== WebSocket.OPEN) return;
@@ -445,9 +436,9 @@ STRIKTE SPRECHREGELN:
 
       source.connect(scriptProcessor);
       scriptProcessor.connect(inputContext.destination);
-      log("🎙️ Live Audio Stream aktiv.");
     }
 
+    // Anti-Knack Glättungs-Engine für den Audio-Playback-Puffer
     function playPcmChunkSmooth(base64Data) {
       if (!audioContext) return;
       if (audioContext.state === 'suspended') audioContext.resume();
@@ -455,16 +446,13 @@ STRIKTE SPRECHREGELN:
       const binaryString = atob(base64Data);
       const len = binaryString.length;
       const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
+      for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+      
       const pcm16 = new Int16Array(bytes.buffer);
       const audioBuffer = audioContext.createBuffer(1, pcm16.length, 24000);
       const channelData = audioBuffer.getChannelData(0);
 
-      for (let i = 0; i < pcm16.length; i++) {
-        channelData[i] = pcm16[i] / 32768.0;
-      }
+      for (let i = 0; i < pcm16.length; i++) channelData[i] = pcm16[i] / 32768.0;
 
       const sourceNode = audioContext.createBufferSource();
       sourceNode.buffer = audioBuffer;
@@ -472,8 +460,9 @@ STRIKTE SPRECHREGELN:
 
       const currentTime = audioContext.currentTime;
       if (nextPlayTime < currentTime) {
-        nextPlayTime = currentTime + 0.02;
+        nextPlayTime = currentTime + 0.04; // Etwas größerer Puffer verhindert Knackgeräusche bei Jitter
       }
+      
       sourceNode.start(nextPlayTime);
       nextPlayTime += audioBuffer.duration;
     }
@@ -485,7 +474,7 @@ STRIKTE SPRECHREGELN:
       if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
       if (scriptProcessor) { try { scriptProcessor.disconnect(); } catch(e){} scriptProcessor = null; }
       if (inputContext && inputContext.state !== 'closed') { try { inputContext.close(); } catch(e){} inputContext = null; }
-      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} audioContext = null; }
+      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} inputContext = null; }
       nextPlayTime = 0;
       orb.classList.remove("active");
       statusText.innerText = "Tippe auf den Orb, um zu sprechen";
