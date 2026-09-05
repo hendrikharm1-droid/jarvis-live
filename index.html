@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -7,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS v9.9.31</title>
+  <title>JARVIS Live OS v9.9.32</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -79,7 +78,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Natural Voice & Deep RAG Hub</p>
+    <p>Natural Voice & Active Learning RAG Hub</p>
   </div>
 
   <div class="orb-container">
@@ -106,6 +105,13 @@
     let nextPlayTime = 0;
     let authToken = localStorage.getItem("JARVIS_AUTH_TOKEN") || localStorage.getItem("JARVIS_WEBAPP_SECRET") || "";
 
+    // State für Active Learning & Multi-Agenten-Suche
+    let lastSearchContext = {
+      primaryFileId: null,
+      backupFileId: null,
+      lastQuery: null
+    };
+
     const orb = document.getElementById("voiceOrb");
     const statusText = document.getElementById("statusText");
 
@@ -121,6 +127,12 @@
         window[callbackName] = function(data) {
           delete window[callbackName];
           if (script.parentNode) script.parentNode.removeChild(script);
+          
+          // Wenn es sich um eine Dokumentensuche handelt, IDs für Active Learning zwischenspeichern
+          if (action === 'search_documents' && typeof data === 'string') {
+            extractSearchMetadata(data, params.query);
+          }
+          
           resolve(data);
         };
 
@@ -140,6 +152,16 @@
         };
         document.body.appendChild(script);
       });
+    }
+
+    // Hilfsfunktion zum Extrahieren von Datei-IDs für das Feedback-System
+    function extractSearchMetadata(responseString, query) {
+      lastSearchContext.lastQuery = query;
+      const primaryMatch = responseString.match(/Primärer Treffer \(ID: ([^)]+)\)/);
+      const backupMatch = responseString.match(/Alternativ-Kandidat \(ID: ([^)]+)\)/);
+      
+      lastSearchContext.primaryFileId = primaryMatch ? primaryMatch[1] : null;
+      lastSearchContext.backupFileId = backupMatch ? backupMatch[1] : null;
     }
 
     window.addEventListener("DOMContentLoaded", () => {
@@ -230,7 +252,7 @@
               responseModalities: ["AUDIO"],
               speechConfig: {
                 voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: "Puck" } // Natürlicher, warmer Klang statt roboterhaftem Aoede/Kore
+                  prebuiltVoiceConfig: { voiceName: "Puck" }
                 }
               }
             },
@@ -239,9 +261,10 @@
                 text: `Du bist JARVIS, der hochentwickelte persönliche KI-Assistent von Hendrik Harm.
 HEUTIGES DATUM: ${TODAY_ISO}.
 STRIKTE SPRECHREGELN: 
-- Lies niemals Dateinamen, IDs oder Unterstriche (wie z.B. 2026-03-05_strom_vattenfall.pdf) mechanisch vor! Übersetze technische Dateinamen beim Sprechen immer in natürliche deutsche Sätze (z.B. "Die Vattenfall Stromrechnung vom 5. März").
+- Lies niemals Dateinamen, IDs oder Unterstriche mechanisch vor! Übersetze technische Dateinamen beim Sprechen immer in natürliche deutsche Sätze (z.B. "Die Vattenfall Stromrechnung vom 5. März").
 - Antworte absolut menschlich, flüssig, präzise und direkt auf Deutsch.
-- Nutze aktiv deine Tools, wenn Hendrik nach E-Mails, Terminen, Aufgaben oder Dokumenten (inklusive Deep-Reading im Inhalt) fragt.` 
+- Nutze aktiv deine Tools, wenn Hendrik nach E-Mails, Terminen, Aufgaben oder Dokumenten fragt.
+- AKTIVES LERNEN: Wenn Hendrik dir bestätigt, dass ein gefundenes Dokument das richtige war, nutze das Tool "train_search", um den Suchbegriff für die Zukunft abzuspeichern.` 
               }]
             },
             tools: [{
@@ -272,13 +295,25 @@ STRIKTE SPRECHREGELN:
                 },
                 {
                   name: "search_documents",
-                  description: "Durchsucht den Drive Index und führt ein Deep-Reading im Vektor-Inhalt aus, wenn genaue Details oder Rechnungsbeträge gesucht werden.",
+                  description: "Durchsucht den Drive Index (inklusive Primär- und Backup-Kandidat) und führt ein Deep-Reading im Vektor-Inhalt aus.",
                   parameters: {
                     type: "OBJECT",
                     properties: {
                       query: { type: "STRING", description: "Suchbegriff oder inhaltliche Frage" }
                     },
                     required: ["query"]
+                  }
+                },
+                {
+                  name: "train_search",
+                  description: "Speichert einen erfolgreichen Suchbegriff dauerhaft als Synonym für die gefundene Datei ab, um künftige Suchen zu verbessern.",
+                  parameters: {
+                    type: "OBJECT",
+                    properties: {
+                      fileId: { type: "STRING", description: "Die Datei-ID (nutze standardmäßig die ID aus dem letzten Suchergebnis oder Backup)" },
+                      query: { type: "STRING", description: "Der vom Nutzer verwendete Suchbegriff" }
+                    },
+                    required: ["fileId", "query"]
                   }
                 },
                 {
@@ -293,7 +328,7 @@ STRIKTE SPRECHREGELN:
                 },
                 {
                   name: "get_open_tasks",
-                  description: "Ruft offene Aufgaben aus der Google Tasks Liste 'JARVIS Fristen & Aufgaben' ab.",
+                  description: "Ruft offene Aufgaben aus der Google Tasks Liste ab.",
                   parameters: { type: "OBJECT", properties: {} }
                 },
                 {
@@ -345,7 +380,18 @@ STRIKTE SPRECHREGELN:
             for (let c of calls) {
               log(`⚡ Tool aktiv: <b>${c.name}</b>`);
               try {
-                const out = await callAppsScriptJSONP(c.name, c.args || {});
+                // Falls das 'train_search' Tool aufgerufen wird, übergeben wir automatisch die gemerkten Context-IDs falls leer
+                let callArgs = c.args || {};
+                if (c.name === 'train_search') {
+                  if (!callArgs.fileId && lastSearchContext.primaryFileId) {
+                    callArgs.fileId = lastSearchContext.primaryFileId;
+                  }
+                  if (!callArgs.query && lastSearchContext.lastQuery) {
+                    callArgs.query = lastSearchContext.lastQuery;
+                  }
+                }
+
+                const out = await callAppsScriptJSONP(c.name, callArgs);
                 log(`📥 Daten geladen für ${c.name}`);
                 responses.push({ name: c.name, id: c.id, response: { output: out } });
               } catch (err) {
