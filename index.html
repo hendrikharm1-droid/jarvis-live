@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS v9.9.37 - British Butler Edition</title>
+  <title>JARVIS Live OS v9.9.38 - British Butler Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -281,7 +281,7 @@ CORE PERSONALITY & TONE:
 STRICT SPEAKING RULES:
 - Never read out raw filenames, extensions (.pdf), UUIDs, or underscores mechanically (e.g., translate "Abrechnung_Lohn.pdf" seamlessly into natural prose like "Ihre Gehaltsabrechnung").
 - Be concise, direct, and exceptionally articulate. 
-- Actively utilize your tools when asked for emails, calendar events, tasks, or documents.` 
+- Actively utilize your tools when asked for emails, calendar events, tasks, or documents. If Hendrik asks for specific details inside a document, use "read_document_content". If he asks to open a document, use "open_browser_document".` 
               }]
             },
             tools: [{
@@ -309,6 +309,16 @@ STRICT SPEAKING RULES:
                   name: "search_documents",
                   description: "Durchsucht den Drive Index mit dem zweistufigen Ordner-First-Prinzip.",
                   parameters: { type: "OBJECT", properties: { query: { type: "STRING", description: "Suchbegriff" } }, required: ["query"] }
+                },
+                {
+                  name: "read_document_content",
+                  description: "Liest den Textinhalt einer spezifischen Datei-ID aus, um Detailfragen zu beantworten.",
+                  parameters: { type: "OBJECT", properties: { fileId: { type: "STRING", description: "Die Datei-ID" } }, required: ["fileId"] }
+                },
+                {
+                  name: "open_browser_document",
+                  description: "Öffnet ein Dokument direkt im neuen Browser-Tab für den Nutzer.",
+                  parameters: { type: "OBJECT", properties: { fileId: { type: "STRING", description: "Die Datei-ID oder der Name" } }, required: ["fileId"] }
                 },
                 {
                   name: "train_search",
@@ -379,11 +389,31 @@ STRICT SPEAKING RULES:
               log(`⚡ Tool aktiv: <b>${c.name}</b>`);
               try {
                 let callArgs = c.args || {};
+                
+                // Intelligentes Fallback für Datei-IDs aus dem letzten Suchkontext
+                if ((c.name === 'read_document_content' || c.name === 'open_browser_document') && !callArgs.fileId) {
+                  if (lastSearchContext.primaryFileId) {
+                    callArgs.fileId = lastSearchContext.primaryFileId;
+                  }
+                }
                 if (c.name === 'train_search') {
                   if (!callArgs.fileId && lastSearchContext.primaryFileId) callArgs.fileId = lastSearchContext.primaryFileId;
                   if (!callArgs.query && lastSearchContext.lastQuery) callArgs.query = lastSearchContext.lastQuery;
                 }
+
                 const out = await callAppsScriptJSONP(c.name, callArgs, 20000);
+                
+                // Automatisches Öffnen im Browser-Tab abfangen
+                if (c.name === 'open_browser_document' && typeof out === 'string' && out.includes("OPEN_TAB")) {
+                  try {
+                    const parsedOut = JSON.parse(out);
+                    if (parsedOut.url) {
+                      window.open(parsedOut.url, '_blank');
+                      log(`🌐 Dokument im Browser geöffnet: ${parsedOut.title || 'Datei'}`);
+                    }
+                  } catch (e) {}
+                }
+
                 log(`📥 Daten geladen für ${c.name}`);
                 responses.push({ name: c.name, id: c.id, response: { output: out } });
               } catch (err) {
