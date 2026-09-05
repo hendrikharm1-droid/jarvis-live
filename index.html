@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -7,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS v9.9.47 - Expert Hybrid Edition</title>
+  <title>JARVIS Live OS v9.9.49 - Expert Hybrid Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -516,6 +515,7 @@ STRICT SPEAKING RULES:
     }
 
     function startAudioStreaming() {
+      if (!mediaStream) return;
       inputContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
       if (inputContext.state === 'suspended') inputContext.resume();
 
@@ -524,15 +524,19 @@ STRICT SPEAKING RULES:
 
       scriptProcessor.onaudioprocess = (e) => {
         if (!isConnected || !isHandshakeReady || !ws || ws.readyState !== WebSocket.OPEN) return;
-        const input = e.inputBuffer.getChannelData(0);
-        const pcm16 = new Int16Array(input.length);
-        for (let i = 0; i < input.length; i++) {
-          pcm16[i] = Math.max(-1, Math.min(1, input[i])) * 0x7FFF;
+        try {
+          const input = e.inputBuffer.getChannelData(0);
+          const pcm16 = new Int16Array(input.length);
+          for (let i = 0; i < input.length; i++) {
+            pcm16[i] = Math.max(-1, Math.min(1, input[i])) * 0x7FFF;
+          }
+          const base64Audio = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
+          ws.send(JSON.stringify({
+            realtimeInput: { mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: base64Audio }] }
+          }));
+        } catch (err) {
+          // Fängt Pufferfehler ab, ohne die Session zu trennen
         }
-        const base64Audio = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
-        ws.send(JSON.stringify({
-          realtimeInput: { mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: base64Audio }] }
-        }));
       };
 
       source.connect(scriptProcessor);
@@ -540,31 +544,35 @@ STRICT SPEAKING RULES:
     }
 
     function playPcmChunkSmooth(base64Data) {
-      if (!audioContext) return;
+      if (!audioContext || audioContext.state === 'closed') return;
       if (audioContext.state === 'suspended') audioContext.resume();
 
-      const binaryString = atob(base64Data);
-      const len = binaryString.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
-      
-      const pcm16 = new Int16Array(bytes.buffer);
-      const audioBuffer = audioContext.createBuffer(1, pcm16.length, 24000);
-      const channelData = audioBuffer.getChannelData(0);
+      try {
+        const binaryString = atob(base64Data);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+        
+        const pcm16 = new Int16Array(bytes.buffer);
+        const audioBuffer = audioContext.createBuffer(1, pcm16.length, 24000);
+        const channelData = audioBuffer.getChannelData(0);
 
-      for (let i = 0; i < pcm16.length; i++) channelData[i] = pcm16[i] / 32768.0;
+        for (let i = 0; i < pcm16.length; i++) channelData[i] = pcm16[i] / 32768.0;
 
-      const sourceNode = audioContext.createBufferSource();
-      sourceNode.buffer = audioBuffer;
-      sourceNode.connect(audioContext.destination);
+        const sourceNode = audioContext.createBufferSource();
+        sourceNode.buffer = audioBuffer;
+        sourceNode.connect(audioContext.destination);
 
-      const currentTime = audioContext.currentTime;
-      if (nextPlayTime < currentTime) {
-        nextPlayTime = currentTime + 0.12;
+        const currentTime = audioContext.currentTime;
+        if (nextPlayTime < currentTime) {
+          nextPlayTime = currentTime + 0.1;
+        }
+        
+        sourceNode.start(nextPlayTime);
+        nextPlayTime += audioBuffer.duration;
+      } catch (e) {
+        // Ignoriert Render-Fehler stumm, damit die Verbindung stabil bleibt
       }
-      
-      sourceNode.start(nextPlayTime);
-      nextPlayTime += audioBuffer.duration;
     }
 
     function stopSession() {
@@ -574,7 +582,7 @@ STRICT SPEAKING RULES:
       if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
       if (scriptProcessor) { try { scriptProcessor.disconnect(); } catch(e){} scriptProcessor = null; }
       if (inputContext && inputContext.state !== 'closed') { try { inputContext.close(); } catch(e){} inputContext = null; }
-      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} inputContext = null; }
+      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} audioContext = null; }
       nextPlayTime = 0;
       orb.classList.remove("active");
       statusText.innerText = "Tippe auf den Orb, um zu sprechen";
