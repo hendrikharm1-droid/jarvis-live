@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -6,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS v9.9.46 - Expert Hybrid Edition</title>
+  <title>JARVIS Live OS v9.9.47 - Expert Hybrid Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -27,7 +28,6 @@
     
     .orb-container { position: relative; display: flex; align-items: center; justify-content: center; }
     
-    /* Hellerer, kontraststarker Kirsch-/Kaminroter Kristall-Orb mit hoher Strahlkraft */
     .orb {
       width: 170px; height: 170px; 
       border-radius: 38%;
@@ -44,7 +44,6 @@
       position: relative;
     }
 
-    /* Innerer, strahlend heller Energiekern */
     .orb::after {
       content: '';
       width: 55px; height: 55px;
@@ -77,7 +76,6 @@
 
     .status-box { text-align: center; font-size: 15px; color: #94a3b8; min-height: 24px; }
     
-    /* Visuelle Aktionskarte für Dokumente (Garantierter Klick-Zugriff ohne Browser-Blockade) */
     .action-card {
       width: 100%; max-width: 400px; background: rgba(30, 41, 59, 0.95);
       border: 1px solid #38bdf8; border-radius: 12px; padding: 12px 16px;
@@ -291,8 +289,9 @@
             res = await callAppsScriptJSONP("get_config", {}, 15000);
           }
 
-          if (!res || !res.apiKey) {
-            log("🚨 Konfigurationsfehler: " + (res?.error || "Kein API-Key"));
+          if (!res || !res.apiKey || res.apiKey === 'MISSING_KEY_IN_PROPERTIES') {
+            log("🚨 Konfigurationsfehler: " + (res?.error || "Kein API-Key in Script Properties"));
+            statusText.innerText = "Konfigurationsfehler";
             stopSession();
             return;
           }
@@ -304,6 +303,7 @@
         connectWebSocket();
       } catch (err) {
         log("❌ Fehler: " + err.message);
+        statusText.innerText = "Fehler beim Start";
         stopSession();
       }
     }
@@ -464,7 +464,6 @@ STRICT SPEAKING RULES:
 
                 const out = await callAppsScriptJSONP(c.name, callArgs, 20000);
                 
-                // Zuverlässiges Öffnen über Aktionskarte und parallelen Tab-Versuch
                 if (c.name === 'open_browser_document' && typeof out === 'string') {
                   try {
                     let parsedOut = JSON.parse(out);
