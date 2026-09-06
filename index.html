@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS v9.9.49 - Expert Hybrid Edition</title>
+  <title>JARVIS Live OS v10.0 - Professional Hybrid Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -128,7 +128,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Expert Hybrid Edition</p>
+    <p>Professional Hybrid Edition</p>
   </div>
 
   <div class="orb-container">
@@ -141,7 +141,7 @@
   </div>
 
   <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
-  <div class="log-box" id="logBox">[JARVIS Bereit]</div>
+  <div class="log-box" id="logBox">[JARVIS Bereit - POST Engine Active]</div>
 
   <script>
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyCSU3wEc2qwIoBsL3xtHT_TD58bSNja_wEm_QyWmiD2_yiWNOqBikAbxIia0M2S42TmA/exec";
@@ -172,55 +172,53 @@
       b.scrollTop = b.scrollHeight;
     }
 
-    function callAppsScriptJSONP(action, params = {}, timeoutMs = 15000) {
-      return new Promise((resolve, reject) => {
-        const callbackName = "jarvis_cb_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
-        let timer = null;
+    /**
+     * NEU: Robuster POST-Request statt unsicherem JSONP
+     */
+    async function callAppsScriptPOST(action, params = {}, timeoutMs = 25000) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-        window[callbackName] = function(data) {
-          if (timer) clearTimeout(timer);
-          delete window[callbackName];
-          if (script.parentNode) script.parentNode.removeChild(script);
-          
-          if (action === 'search_documents' && typeof data === 'string') {
-            extractSearchMetadata(data, params.query);
-          }
-          resolve(data);
-        };
-
-        const script = document.createElement("script");
-        const queryParams = new URLSearchParams({
-          action: action,
-          authToken: authToken,
-          callback: callbackName,
-          params: JSON.stringify(params)
+      try {
+        const response = await fetch(APPS_SCRIPT_WEBAPP_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8" // Verhindert CORS-Preflight-Blockaden in Google Apps Script
+          },
+          body: JSON.stringify({
+            action: action,
+            authToken: authToken,
+            params: params
+          }),
+          signal: controller.signal
         });
 
-        script.src = `${APPS_SCRIPT_WEBAPP_URL}?${queryParams.toString()}`;
-        script.onerror = function() {
-          if (timer) clearTimeout(timer);
-          delete window[callbackName];
-          if (script.parentNode) script.parentNode.removeChild(script);
-          reject(new Error("Netzwerkfehler / Backend nicht erreichbar"));
-        };
+        clearTimeout(timer);
 
-        timer = setTimeout(() => {
-          delete window[callbackName];
-          if (script.parentNode) script.parentNode.removeChild(script);
-          reject(new Error("Timeout beim Backend-Aufruf"));
-        }, timeoutMs);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-        document.body.appendChild(script);
-      });
+        const data = await response.json();
+        
+        if (action === 'search_documents' && typeof data.output === 'string') {
+          extractSearchMetadata(data.output, params.query);
+        }
+
+        return data.output !== undefined ? data.output : data;
+      } catch (err) {
+        clearTimeout(timer);
+        if (err.name === 'AbortError') {
+          throw new Error("Backend Timeout (zu lange Verarbeitungszeit)");
+        }
+        throw new Error("Netzwerkfehler / Backend nicht erreichbar");
+      }
     }
 
     function extractSearchMetadata(responseString, query) {
       lastSearchContext.lastQuery = query;
-      const primaryMatch = responseString.match(/Primärer Treffer \(ID: ([^)]+)\)/);
-      const backupMatch = responseString.match(/Alternativ-Kandidat \(ID: ([^)]+)\)/);
-      
-      lastSearchContext.primaryFileId = primaryMatch ? primaryMatch[1] : null;
-      lastSearchContext.backupFileId = backupMatch ? backupMatch[1] : null;
+      const primaryMatch = responseString.match(/Datei-ID: ([^.\n]+)/);
+      lastSearchContext.primaryFileId = primaryMatch ? primaryMatch[1].trim() : null;
     }
 
     window.addEventListener("DOMContentLoaded", () => {
@@ -232,7 +230,7 @@
     });
 
     function wakeUpBackend() {
-      callAppsScriptJSONP("keep_alive", {}, 10000).catch(() => {});
+      callAppsScriptPOST("keep_alive", {}, 10000).catch(() => {});
     }
 
     function saveAuthToken() {
@@ -281,20 +279,16 @@
 
         if (!dynamicApiKey) {
           statusText.innerText = "Lade Konfiguration...";
-          let res = null;
-          try {
-            res = await callAppsScriptJSONP("get_config", {}, 12000);
-          } catch (e) {
-            res = await callAppsScriptJSONP("get_config", {}, 15000);
-          }
+          let res = await callAppsScriptPOST("get_config", {}, 15000);
 
-          if (!res || !res.apiKey || res.apiKey === 'MISSING_KEY_IN_PROPERTIES') {
-            log("🚨 Konfigurationsfehler: " + (res?.error || "Kein API-Key in Script Properties"));
+          if (!res || (typeof res === 'string' && res.includes('MISSING')) ) {
+            log("🚨 Konfigurationsfehler: API-Key fehlt.");
             statusText.innerText = "Konfigurationsfehler";
             stopSession();
             return;
           }
-          dynamicApiKey = res.apiKey.trim();
+          // Wenn der Key direkt als String oder Objekt zurückkommt
+          dynamicApiKey = (typeof res === 'string' ? res : (res.apiKey || res)).trim();
           log("🔑 Key geladen.");
         }
 
@@ -461,7 +455,7 @@ STRICT SPEAKING RULES:
                   if (!callArgs.query && lastSearchContext.lastQuery) callArgs.query = lastSearchContext.lastQuery;
                 }
 
-                const out = await callAppsScriptJSONP(c.name, callArgs, 20000);
+                const out = await callAppsScriptPOST(c.name, callArgs, 25000);
                 
                 if (c.name === 'open_browser_document' && typeof out === 'string') {
                   try {
@@ -534,9 +528,7 @@ STRICT SPEAKING RULES:
           ws.send(JSON.stringify({
             realtimeInput: { mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: base64Audio }] }
           }));
-        } catch (err) {
-          // Fängt Pufferfehler ab, ohne die Session zu trennen
-        }
+        } catch (err) {}
       };
 
       source.connect(scriptProcessor);
@@ -570,9 +562,7 @@ STRICT SPEAKING RULES:
         
         sourceNode.start(nextPlayTime);
         nextPlayTime += audioBuffer.duration;
-      } catch (e) {
-        // Ignoriert Render-Fehler stumm, damit die Verbindung stabil bleibt
-      }
+      } catch (e) {}
     }
 
     function stopSession() {
