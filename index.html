@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -179,9 +180,6 @@
       try {
         const response = await fetch(APPS_SCRIPT_WEBAPP_URL, {
           method: "POST",
-          headers: {
-            "Content-Type": "text/plain;charset=utf-8"
-          },
           body: JSON.stringify({
             action: action,
             authToken: authToken,
@@ -568,7 +566,7 @@ STRICT SPEAKING RULES:
       if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
       if (scriptProcessor) { try { scriptProcessor.disconnect(); } catch(e){} scriptProcessor = null; }
       if (inputContext && inputContext.state !== 'closed') { try { inputContext.close(); } catch(e){} inputContext = null; }
-      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} audioContext = null; }
+      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} inputContext = null; }
       nextPlayTime = 0;
       orb.classList.remove("active");
       statusText.innerText = "Tippe auf den Orb, um zu sprechen";
