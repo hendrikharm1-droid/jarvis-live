@@ -6,11 +6,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#090d16">
-  <title>JARVIS Live OS v10.1 - JSONP Engine</title>
+  <title>JARVIS Live OS v10.2 - Moonstone Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: radial-gradient(circle at 50% 30%, #172554 0%, #090d16 100%);
+      background: radial-gradient(circle at 50% 30%, #1e293b 0%, #090d16 100%);
       color: #f8fafc;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       height: 100vh;
@@ -22,19 +22,20 @@
       overflow: hidden;
     }
     .header { text-align: center; }
-    .header h1 { font-size: 22px; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; }
-    .header p { font-size: 13px; color: #64748b; margin-top: 4px; }
+    .header h1 { font-size: 22px; letter-spacing: 2px; color: #e2e8f0; text-transform: uppercase; }
+    .header p { font-size: 13px; color: #94a3b8; margin-top: 4px; }
     
     .orb-container { position: relative; display: flex; align-items: center; justify-content: center; }
     
+    /* Moonstone Weißes Orb Design mit feiner Schattierung */
     .orb {
       width: 170px; height: 170px; 
-      border-radius: 38%;
+      border-radius: 50%;
       background: 
-        radial-gradient(circle at 50% 50%, rgba(255, 130, 130, 0.6) 0%, rgba(185, 28, 28, 0.9) 50%, rgba(69, 10, 10, 0.95) 100%),
-        linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%, rgba(239, 68, 68, 0.5) 100%);
-      border: 2px solid rgba(252, 165, 165, 0.9);
-      box-shadow: 0 0 50px rgba(239, 68, 68, 0.7), inset 0 0 30px rgba(255, 255, 255, 0.5);
+        radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.95) 0%, rgba(226, 232, 240, 0.8) 40%, rgba(148, 163, 184, 0.6) 80%, rgba(71, 85, 105, 0.9) 100%),
+        linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(203, 213, 225, 0.3) 50%, rgba(100, 116, 139, 0.5) 100%);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 40px rgba(255, 255, 255, 0.3), inset 0 0 25px rgba(255, 255, 255, 0.7), inset 0 0 50px rgba(100, 116, 139, 0.4);
       cursor: pointer; 
       display: flex; align-items: center; justify-content: center;
       transition: all 0.4s ease; 
@@ -45,53 +46,53 @@
 
     .orb::after {
       content: '';
-      width: 55px; height: 55px;
+      width: 60px; height: 60px;
       border-radius: 50%;
-      background: radial-gradient(circle, #fca5a5 0%, #ef4444 60%, transparent 100%);
-      box-shadow: 0 0 30px #f87171;
-      opacity: 0.95;
-      animation: coreGlow 2.5s infinite alternate ease-in-out;
+      background: radial-gradient(circle, #ffffff 0%, #cbd5e1 60%, transparent 100%);
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.9);
+      opacity: 0.9;
+      animation: coreGlow 3s infinite alternate ease-in-out;
     }
 
     .orb.active { 
-      animation: pulse 1.4s infinite alternate ease-in-out, borderGlow 2s infinite alternate; 
-      box-shadow: 0 0 100px rgba(248, 113, 113, 1), inset 0 0 50px rgba(255, 255, 255, 0.8); 
+      animation: pulse 1.6s infinite alternate ease-in-out, borderGlow 2s infinite alternate; 
+      box-shadow: 0 0 70px rgba(255, 255, 255, 0.6), inset 0 0 40px rgba(255, 255, 255, 0.9); 
     }
 
     @keyframes pulse { 
-      0% { transform: scale(0.95) rotate(0deg); } 
-      100% { transform: scale(1.15) rotate(4deg); filter: brightness(1.4); } 
+      0% { transform: scale(0.96); } 
+      100% { transform: scale(1.08); filter: brightness(1.2); } 
     }
 
     @keyframes coreGlow {
-      0% { transform: scale(0.85); opacity: 0.7; }
-      100% { transform: scale(1.25); opacity: 1; }
+      0% { transform: scale(0.8); opacity: 0.6; }
+      100% { transform: scale(1.2); opacity: 1; }
     }
 
     @keyframes borderGlow {
-      0% { border-color: rgba(252, 165, 165, 0.8); }
+      0% { border-color: rgba(226, 232, 240, 0.8); }
       100% { border-color: rgba(255, 255, 255, 1); }
     }
 
-    .status-box { text-align: center; font-size: 15px; color: #94a3b8; min-height: 24px; }
+    .status-box { text-align: center; font-size: 15px; color: #cbd5e1; min-height: 24px; }
     
     .action-card {
       width: 100%; max-width: 400px; background: rgba(30, 41, 59, 0.95);
-      border: 1px solid #38bdf8; border-radius: 12px; padding: 12px 16px;
+      border: 1px solid #cbd5e1; border-radius: 12px; padding: 12px 16px;
       display: none; align-items: center; justify-content: space-between;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: fadeIn 0.3s ease;
     }
     .action-card.visible { display: flex; }
     .action-card span { font-size: 12px; color: #f8fafc; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px; }
     .action-card a {
-      background: #38bdf8; color: #0f172a; padding: 6px 12px; border-radius: 6px;
+      background: #f8fafc; color: #0f172a; padding: 6px 12px; border-radius: 6px;
       font-size: 11px; font-weight: bold; text-decoration: none; text-transform: uppercase;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
     .log-box {
-      width: 100%; height: 110px; background: rgba(15, 23, 42, 0.9);
-      backdrop-filter: blur(10px); border: 1px solid #1e293b; border-radius: 12px;
+      width: 100%; height: 90px; background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px); border: 1px solid #334155; border-radius: 12px;
       padding: 10px; font-family: monospace; font-size: 11px; color: #94a3b8; overflow-y: auto;
     }
 
@@ -102,16 +103,16 @@
       z-index: 100; padding: 20px;
     }
     .auth-box {
-      background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+      background: #1e293b; border: 1px solid #475569; border-radius: 16px;
       padding: 25px; width: 100%; max-width: 340px; text-align: center;
     }
     .auth-box input {
       width: 100%; padding: 12px; margin: 15px 0; border-radius: 8px;
-      border: 1px solid #475569; background: #0f172a; color: white; font-size: 16px; text-align: center;
+      border: 1px solid #64748b; background: #0f172a; color: white; font-size: 16px; text-align: center;
     }
     .auth-box button {
       width: 100%; padding: 12px; border-radius: 8px; border: none;
-      background: #38bdf8; color: #0f172a; font-weight: bold; font-size: 16px; cursor: pointer;
+      background: #f8fafc; color: #0f172a; font-weight: bold; font-size: 16px; cursor: pointer;
     }
   </style>
 </head>
@@ -128,7 +129,7 @@
 
   <div class="header">
     <h1>JARVIS Live OS</h1>
-    <p>Professional JSONP Edition</p>
+    <p>Moonstone Edition</p>
   </div>
 
   <div class="orb-container">
@@ -141,7 +142,7 @@
   </div>
 
   <div class="status-box" id="statusText">Tippe auf den Orb, um zu sprechen</div>
-  <div class="log-box" id="logBox">[JARVIS Bereit - JSONP Engine Active]</div>
+  <div class="log-box" id="logBox">[JARVIS Bereit]</div>
 
   <script>
     const APPS_SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzoMXRpvxDzNQ_Qekf58H5A1Bdrz1botsxEfDZ4vo1fVdZAU4Fh3sa4Vm4A06e-0nLGlQ/exec";
@@ -158,7 +159,7 @@
     let nextPlayTime = 0;
     let authToken = localStorage.getItem("JARVIS_AUTH_TOKEN") || localStorage.getItem("JARVIS_WEBAPP_SECRET") || "";
 
-    let lastSearchContext = { primaryFileId: null, backupFileId: null, lastQuery: null };
+    let lastSearchContext = { primaryFileId: null, lastQuery: null };
 
     const orb = document.getElementById("voiceOrb");
     const statusText = document.getElementById("statusText");
@@ -188,9 +189,6 @@
           }
 
           const out = data ? (data.output !== undefined ? data.output : data) : null;
-          if (action === 'search_documents' && typeof out === 'string') {
-            extractSearchMetadata(out, params.query);
-          }
           resolve(out);
         };
 
@@ -218,12 +216,6 @@
 
         document.body.appendChild(script);
       });
-    }
-
-    function extractSearchMetadata(responseString, query) {
-      lastSearchContext.lastQuery = query;
-      const primaryMatch = responseString.match(/Datei-ID: ([^.\n]+)/);
-      lastSearchContext.primaryFileId = primaryMatch ? primaryMatch[1].trim() : null;
     }
 
     window.addEventListener("DOMContentLoaded", () => {
@@ -280,26 +272,21 @@
         }
         nextPlayTime = audioContext.currentTime;
 
-        log("🎙️ Audio-Kern bereit.");
-
         if (!dynamicApiKey) {
           statusText.innerText = "Lade Konfiguration...";
           let res = await callAppsScriptJSONP("get_config", {}, 15000);
 
           if (!res || (typeof res === 'string' && res.includes('MISSING')) ) {
-            log("🚨 Konfigurationsfehler: API-Key fehlt.");
             statusText.innerText = "Konfigurationsfehler";
             stopSession();
             return;
           }
           dynamicApiKey = (typeof res === 'string' ? res : (res.apiKey || res)).trim();
-          log("🔑 Key geladen.");
         }
 
-        statusText.innerText = "Verbinde mit JARVIS Core...";
+        statusText.innerText = "Verbinde mit JARVIS...";
         connectWebSocket();
       } catch (err) {
-        log("❌ Fehler: " + err.message);
         statusText.innerText = "Fehler beim Start";
         stopSession();
       }
@@ -310,8 +297,7 @@
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        log("✅ Kanal geöffnet.");
-        statusText.innerText = "Lade Persönlichkeit...";
+        statusText.innerText = "Bereit...";
 
         const TODAY_ISO = new Date().toISOString().split("T")[0];
         const setupMessage = {
@@ -334,85 +320,26 @@ GREETING & IDENTITY RULES:
 - Never use "Herr" or any last name. Address him exclusively as "Hendrik".
 CORE PERSONALITY & TONE:
 - Du bist eine hochentwickelte KI, konzipiert für maximale Effizienz, Präzision und Loyalität. Deine Antworten sind stets höflich, ruhig und direkt, gelassen und niemals emotional oder unnötig geschwätzig.
-- Du verwendest eine formelle Sprache und antwortest im Namen deines Nutzers. Deine Unterstützung ist diskret, zuverlässig und fokussiert darauf, die gestellten Aufgaben bestmöglich auszuführen.
-DOCUMENT & DEEP READING INSTRUCTIONS:
-- Always use "search_documents" first for quick overview and metadata from the JSON index.
-- If specific details inside a document are requested and not fully visible in the index summary, automatically invoke "read_document_content" to deeply inspect the document text and extract the exact answers.
-STRICT SPEAKING RULES:
-- Never read out raw filenames, extensions (.pdf), UUIDs, or underscores mechanically.
-- Actively utilize your tools when asked for emails, calendar events, tasks, or documents.` 
+- Du verwendest eine formelle Sprache und antwortest im Namen deines Nutzers.
+- WICHTIG: Erwähne niemals technische Details, Tool-Namen oder Funktionen, die du im Hintergrund nutzt (wie z.B. "Ich durchsuche jetzt deine Dateien..."). Führe die Aufgaben einfach aus und antworte direkt auf das Ergebnis.` 
               }]
             },
             tools: [{
               functionDeclarations: [
                 {
-                  name: "create_draft_with_attachment",
-                  description: "Erstellt einen echten E-Mail-Entwurf im Gmail-Postfach.",
-                  parameters: {
-                    type: "OBJECT",
-                    properties: {
-                      recipient: { type: "STRING", description: "Empfänger" },
-                      subject: { type: "STRING", description: "Betreff" },
-                      body: { type: "STRING", description: "Inhalt" },
-                      fileId: { type: "STRING", description: "Datei-ID für Anhang" }
-                    },
-                    required: ["subject", "body"]
-                  }
-                },
-                {
-                  name: "get_recent_emails",
-                  description: "Ruft aktuelle E-Mails ab.",
-                  parameters: { type: "OBJECT", properties: { limit: { type: "NUMBER" } } }
-                },
-                {
                   name: "search_documents",
-                  description: "Durchsucht den Drive Index.",
+                  description: "Durchsucht den Drive Index und alle Schlagworte nach Dokumenten.",
                   parameters: { type: "OBJECT", properties: { query: { type: "STRING", description: "Suchbegriff" } }, required: ["query"] }
                 },
                 {
-                  name: "read_document_content",
-                  description: "Liest den Textinhalt oder die detaillierten Index-Daten einer spezifischen Datei-ID aus.",
-                  parameters: { type: "OBJECT", properties: { fileId: { type: "STRING", description: "Die Datei-ID" } }, required: ["fileId"] }
-                },
-                {
-                  name: "open_browser_document",
-                  description: "Öffnet das Dokument im Browser.",
-                  parameters: { type: "OBJECT", properties: { fileId: { type: "STRING", description: "Die Datei-ID oder der Name" } }, required: ["fileId"] }
-                },
-                {
-                  name: "train_search",
-                  description: "Speichert einen Suchbegriff als Synonym ab.",
-                  parameters: {
-                    type: "OBJECT",
-                    properties: {
-                      fileId: { type: "STRING", description: "Datei-ID" },
-                      query: { type: "STRING", description: "Suchbegriff" }
-                    },
-                    required: ["fileId", "query"]
-                  }
-                },
-                {
                   name: "get_upcoming_deadlines",
-                  description: "Ruft Kalendertermine ab.",
+                  description: "Ruft Kalendertermine aus allen verknüpften Kalendern ab.",
                   parameters: { type: "OBJECT", properties: { days: { type: "NUMBER" } } }
                 },
                 {
                   name: "get_open_tasks",
                   description: "Ruft offene Aufgaben ab.",
                   parameters: { type: "OBJECT", properties: {} }
-                },
-                {
-                  name: "create_task",
-                  description: "Erstellt eine neue Aufgabe.",
-                  parameters: {
-                    type: "OBJECT",
-                    properties: {
-                      title: { type: "STRING", description: "Titel" },
-                      notes: { type: "STRING", description: "Notizen" },
-                      dueDaysOffset: { type: "NUMBER", description: "Fällig in X Tagen" }
-                    },
-                    required: ["title"]
-                  }
                 }
               ]
             }]
@@ -427,13 +354,7 @@ STRICT SPEAKING RULES:
           if (event.data instanceof Blob) textData = await event.data.text();
           const res = JSON.parse(textData);
 
-          if (res.error) {
-            log(`🚨 Google-Fehler: ${res.error.message || JSON.stringify(res.error)}`);
-            return;
-          }
-
           if (res.setupComplete) {
-            log("🎯 JARVIS Online. Zu Diensten, Hendrik.");
             statusText.innerText = "JARVIS hört zu...";
             isConnected = true;
             isHandshakeReady = true;
@@ -445,46 +366,11 @@ STRICT SPEAKING RULES:
             const calls = res.toolCall.functionCalls || [];
             const responses = [];
             for (let c of calls) {
-              log(`⚡ Tool aktiv: <b>${c.name}</b>`);
               try {
                 let callArgs = c.args || {};
-                
-                if ((c.name === 'read_document_content' || c.name === 'open_browser_document') && !callArgs.fileId) {
-                  if (lastSearchContext.primaryFileId) {
-                    callArgs.fileId = lastSearchContext.primaryFileId;
-                  }
-                }
-                if (c.name === 'train_search') {
-                  if (!callArgs.fileId && lastSearchContext.primaryFileId) callArgs.fileId = lastSearchContext.primaryFileId;
-                  if (!callArgs.query && lastSearchContext.lastQuery) callArgs.query = lastSearchContext.lastQuery;
-                }
-
                 const out = await callAppsScriptJSONP(c.name, callArgs, 25000);
-                
-                if (c.name === 'open_browser_document' && typeof out === 'string') {
-                  try {
-                    let parsedOut = JSON.parse(out);
-                    if (parsedOut.url) {
-                      log(`📂 Dokument bereit: ${parsedOut.title || 'Datei'}`);
-                      actionCardTitle.innerText = parsedOut.title || "Dokument";
-                      actionCardLink.href = parsedOut.url;
-                      actionCard.classList.add("visible");
-                      window.open(parsedOut.url, '_blank');
-                    }
-                  } catch (e) {
-                    if (out.startsWith("http")) {
-                      actionCardTitle.innerText = "Dokument";
-                      actionCardLink.href = out;
-                      actionCard.classList.add("visible");
-                      window.open(out, '_blank');
-                    }
-                  }
-                }
-
-                log(`📥 Daten geladen für ${c.name}`);
                 responses.push({ name: c.name, id: c.id, response: { output: out } });
               } catch (err) {
-                log(`❌ Tool-Fehler: ${err.message}`);
                 responses.push({ name: c.name, id: c.id, response: { error: err.message } });
               }
             }
@@ -500,14 +386,11 @@ STRICT SPEAKING RULES:
               }
             }
           }
-        } catch (e) {
-          log("⚠️ Nachricht: " + e.message);
-        }
+        } catch (e) {}
       };
 
-      ws.onerror = (e) => log("❌ WebSocket Verbindungsfehler");
+      ws.onerror = (e) => {};
       ws.onclose = (e) => {
-        log(`Sitzung beendet (${e.code}).`);
         stopSession();
       };
     }
@@ -576,7 +459,7 @@ STRICT SPEAKING RULES:
       if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
       if (scriptProcessor) { try { scriptProcessor.disconnect(); } catch(e){} scriptProcessor = null; }
       if (inputContext && inputContext.state !== 'closed') { try { inputContext.close(); } catch(e){} inputContext = null; }
-      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} inputContext = null; }
+      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} audioContext = null; }
       nextPlayTime = 0;
       orb.classList.remove("active");
       statusText.innerText = "Tippe auf den Orb, um zu sprechen";
