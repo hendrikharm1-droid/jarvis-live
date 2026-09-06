@@ -159,8 +159,6 @@
     let nextPlayTime = 0;
     let authToken = localStorage.getItem("JARVIS_AUTH_TOKEN") || localStorage.getItem("JARVIS_WEBAPP_SECRET") || "";
 
-    let lastSearchContext = { primaryFileId: null, lastQuery: null };
-
     const orb = document.getElementById("voiceOrb");
     const statusText = document.getElementById("statusText");
     const actionCard = document.getElementById("actionCard");
@@ -169,8 +167,10 @@
 
     function log(msg) {
       const b = document.getElementById("logBox");
-      b.innerHTML += `<br>• ${msg}`;
-      b.scrollTop = b.scrollHeight;
+      if (b) {
+        b.innerHTML += `<br>• ${msg}`;
+        b.scrollTop = b.scrollHeight;
+      }
     }
 
     function callAppsScriptJSONP(action, params = {}, timeoutMs = 25000) {
@@ -181,7 +181,7 @@
         window[callbackName] = function(data) {
           if (timer) clearTimeout(timer);
           delete window[callbackName];
-          if (script.parentNode) script.parentNode.removeChild(script);
+          if (script && script.parentNode) script.parentNode.removeChild(script);
           
           if (data && data.error) {
             reject(new Error(data.error));
@@ -204,13 +204,13 @@
         script.onerror = function() {
           if (timer) clearTimeout(timer);
           delete window[callbackName];
-          if (script.parentNode) script.parentNode.removeChild(script);
+          if (script && script.parentNode) script.parentNode.removeChild(script);
           reject(new Error("Netzwerkfehler / Backend nicht erreichbar"));
         };
 
         timer = setTimeout(() => {
           delete window[callbackName];
-          if (script.parentNode) script.parentNode.removeChild(script);
+          if (script && script.parentNode) script.parentNode.removeChild(script);
           reject(new Error("Timeout beim Backend-Aufruf"));
         }, timeoutMs);
 
