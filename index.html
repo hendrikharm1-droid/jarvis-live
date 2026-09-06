@@ -172,46 +172,51 @@
       b.scrollTop = b.scrollHeight;
     }
 
-    /**
-     * Zuverlässige JSONP-Kommunikation (umgeht alle CORS-Blockaden von Google Apps Script)
-     */
     function callAppsScriptJSONP(action, params = {}, timeoutMs = 25000) {
       return new Promise((resolve, reject) => {
-        const callbackName = 'jarvis_cb_' + Math.random().toString(36).substring(2, 9);
-        const scriptTag = document.createElement('script');
+        const callbackName = "jarvis_cb_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+        let timer = null;
+
+        window[callbackName] = function(data) {
+          if (timer) clearTimeout(timer);
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+          
+          if (data && data.error) {
+            reject(new Error(data.error));
+            return;
+          }
+
+          const out = data ? (data.output !== undefined ? data.output : data) : null;
+          if (action === 'search_documents' && typeof out === 'string') {
+            extractSearchMetadata(out, params.query);
+          }
+          resolve(out);
+        };
+
+        const script = document.createElement("script");
+        const queryParams = new URLSearchParams({
+          action: action,
+          callback: callbackName,
+          params: JSON.stringify(params)
+        });
+
+        script.src = `${APPS_SCRIPT_WEBAPP_URL}?${queryParams.toString()}`;
         
-        const timer = setTimeout(() => {
-          cleanup();
-          reject(new Error("Timeout / Backend nicht erreichbar"));
+        script.onerror = function() {
+          if (timer) clearTimeout(timer);
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+          reject(new Error("Netzwerkfehler / Backend nicht erreichbar"));
+        };
+
+        timer = setTimeout(() => {
+          delete window[callbackName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+          reject(new Error("Timeout beim Backend-Aufruf"));
         }, timeoutMs);
 
-        window[callbackName] = function(response) {
-          cleanup();
-          if (response && response.error) {
-            reject(new Error(response.error));
-          } else {
-            const out = response ? (response.output !== undefined ? response.output : response) : null;
-            if (action === 'search_documents' && typeof out === 'string') {
-              extractSearchMetadata(out, params.query);
-            }
-            resolve(out);
-          }
-        };
-
-        function cleanup() {
-          clearTimeout(timer);
-          if (scriptTag.parentNode) scriptTag.parentNode.removeChild(scriptTag);
-          delete window[callbackName];
-        }
-
-        scriptTag.onerror = () => {
-          cleanup();
-          reject(new Error("Netzwerkfehler bei JSONP-Abfrage"));
-        };
-
-        const paramString = encodeURIComponent(JSON.stringify(params));
-        scriptTag.src = `${APPS_SCRIPT_WEBAPP_URL}?action=${action}&params=${paramString}&callback=${callbackName}`;
-        document.body.appendChild(scriptTag);
+        document.body.appendChild(script);
       });
     }
 
@@ -571,7 +576,7 @@ STRICT SPEAKING RULES:
       if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
       if (scriptProcessor) { try { scriptProcessor.disconnect(); } catch(e){} scriptProcessor = null; }
       if (inputContext && inputContext.state !== 'closed') { try { inputContext.close(); } catch(e){} inputContext = null; }
-      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} audioContext = null; }
+      if (audioContext && audioContext.state !== 'closed') { try { audioContext.close(); } catch(e){} inputContext = null; }
       nextPlayTime = 0;
       orb.classList.remove("active");
       statusText.innerText = "Tippe auf den Orb, um zu sprechen";
